@@ -1,7 +1,7 @@
 "use client";
- 
+
 import { useState, useEffect } from "react";
- 
+
 const STEPS = [
   {
     number: "01",
@@ -44,7 +44,7 @@ const STEPS = [
     icon: "🏆",
   },
 ];
- 
+
 const LIVE_RAFFLES = [
   {
     projectA: "DeGods",
@@ -77,7 +77,7 @@ const LIVE_RAFFLES = [
     xB: "@moonbirds",
   },
 ];
- 
+
 function Countdown({ ms }: { ms: number }) {
   const [remaining, setRemaining] = useState(ms);
   useEffect(() => {
@@ -95,11 +95,11 @@ function Countdown({ ms }: { ms: number }) {
     </span>
   );
 }
- 
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
- 
+
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -114,26 +114,27 @@ export default function Home() {
             <a href="#" className="hover:text-white transition-colors">Projects</a>
           </div>
           <div className="flex items-center gap-2">
-  <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
-    Request Spots
-  </button>
-  <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
-    List My Spots
-  </button>
-</div>
+            <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
+              Request Spots
+            </button>
+            <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
+              List My Spots
+            </button>
+          </div>
+        </div>
       </nav>
- 
+
       {/* HERO */}
       <section className="pt-40 pb-24 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-transparent pointer-events-none" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
- 
+
         <div className="relative max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-white/70 mb-8">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
             The first verified whitelist collaboration platform
           </div>
- 
+
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
             Share Whitelist Spots
             <br />
@@ -141,12 +142,12 @@ export default function Home() {
               With Verified Projects
             </span>
           </h1>
- 
+
           <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed">
             No DMs. No trust issues. Projects list their spots, partners request them,
             both verify on X — and the raffle runs transparently on-chain.
           </p>
- 
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-8 py-4 rounded-xl text-base">
               List My Spots
@@ -157,7 +158,7 @@ export default function Home() {
           </div>
         </div>
       </section>
- 
+
       {/* STATS */}
       <section className="border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -174,7 +175,7 @@ export default function Home() {
           ))}
         </div>
       </section>
- 
+
       {/* HOW IT WORKS */}
       <section id="how" className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
@@ -185,7 +186,7 @@ export default function Home() {
               Every step is transparent, every project is verified, every raffle is fair.
             </p>
           </div>
- 
+
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {STEPS.map((step, i) => (
               <div key={i} className="relative bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 hover:border-white/20 transition-colors">
@@ -205,7 +206,7 @@ export default function Home() {
           </div>
         </div>
       </section>
- 
+
       {/* X VERIFICATION BANNER */}
       <section className="px-6 py-12">
         <div className="max-w-4xl mx-auto bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/20 rounded-2xl p-8 md:p-12 text-center">
@@ -234,7 +235,7 @@ export default function Home() {
           </div>
         </div>
       </section>
- 
+
       {/* LIVE RAFFLES */}
       <section id="raffles" className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
@@ -247,7 +248,7 @@ export default function Home() {
               View all
             </button>
           </div>
- 
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {LIVE_RAFFLES.map((r, i) => (
               <div key={i} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1 cursor-pointer">
@@ -290,7 +291,7 @@ export default function Home() {
           </div>
         </div>
       </section>
- 
+
       {/* FOR BOTH SIDES */}
       <section className="py-24 px-6 bg-white/[0.01]">
         <div className="max-w-5xl mx-auto">
@@ -320,7 +321,7 @@ export default function Home() {
                 List My Spots
               </button>
             </div>
- 
+
             <div className="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-8">
               <div className="text-blue-400 text-sm font-semibold uppercase tracking-widest mb-4">Project B — Spot Requester</div>
               <h3 className="text-xl font-bold mb-4">Get spots for your community</h3>
@@ -345,7 +346,7 @@ export default function Home() {
           </div>
         </div>
       </section>
- 
+
       {/* FOOTER */}
       <footer className="border-t border-white/5 py-12 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -362,7 +363,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
- 
+
     </div>
   );
 }
