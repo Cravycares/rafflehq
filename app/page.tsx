@@ -113,10 +113,14 @@ export default function Home() {
             <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
             <a href="#" className="hover:text-white transition-colors">Projects</a>
           </div>
-          <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
-            Connect Wallet
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+  <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
+    Request Spots
+  </button>
+  <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
+    List My Spots
+  </button>
+</div>
       </nav>
  
       {/* HERO */}
