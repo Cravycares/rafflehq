@@ -2,6 +2,82 @@
 
 import { useState, useEffect } from "react";
 
+const STEPS = [
+  {
+    number: "01",
+    role: "Project A",
+    color: "purple",
+    title: "List Your Spots",
+    desc: "Connect your wallet and verify your official X account. Set how many whitelist spots you want to share with partner projects.",
+    icon: "🏛️",
+  },
+  {
+    number: "02",
+    role: "Project B",
+    color: "blue",
+    title: "Request Spots",
+    desc: "Verify your X account and send a collaboration request. No DMs, no trust issues — everything is on-chain and public.",
+    icon: "📨",
+  },
+  {
+    number: "03",
+    role: "Project A",
+    color: "purple",
+    title: "Review & Allocate",
+    desc: "See all incoming requests on your dashboard. Accept the ones you want and set the exact number of spots for each partner.",
+    icon: "✅",
+  },
+  {
+    number: "04",
+    role: "Both Projects",
+    color: "green",
+    title: "Raffle Goes Live",
+    desc: "The raffle page goes public instantly. Both verified X accounts are displayed — full transparency for every entrant.",
+    icon: "🚀",
+  },
+  {
+    number: "05",
+    role: "Project A",
+    color: "purple",
+    title: "Download Winners",
+    desc: "When the raffle ends, Project A gets the full winners list in one click. Clean wallet CSV, ready for whitelist upload.",
+    icon: "🏆",
+  },
+];
+
+const LIVE_RAFFLES = [
+  {
+    projectA: "DeGods",
+    projectB: "Okay Bears",
+    spots: 500,
+    filled: 387,
+    endsIn: 1000 * 60 * 60 * 18,
+    gradient: "from-purple-900 via-purple-700 to-indigo-800",
+    xA: "@degodsnft",
+    xB: "@okaybears",
+  },
+  {
+    projectA: "Azuki",
+    projectB: "CloneX",
+    spots: 250,
+    filled: 201,
+    endsIn: 1000 * 60 * 60 * 6,
+    gradient: "from-pink-900 via-rose-700 to-orange-800",
+    xA: "@azuki",
+    xB: "@clonex",
+  },
+  {
+    projectA: "BAYC",
+    projectB: "Moonbirds",
+    spots: 1000,
+    filled: 743,
+    endsIn: 1000 * 60 * 60 * 36,
+    gradient: "from-yellow-900 via-amber-700 to-orange-700",
+    xA: "@boredapeyc",
+    xB: "@moonbirds",
+  },
+];
+
 function Countdown({ ms }: { ms: number }) {
   const [remaining, setRemaining] = useState(ms);
   useEffect(() => {
@@ -10,326 +86,284 @@ function Countdown({ ms }: { ms: number }) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [ms]);
-  const d = Math.floor(remaining / 86400000);
-  const h = Math.floor((remaining % 86400000) / 3600000);
+  const h = Math.floor(remaining / 3600000);
   const m = Math.floor((remaining % 3600000) / 60000);
   const s = Math.floor((remaining % 60000) / 1000);
   return (
-    <div className="flex gap-2">
-      {[{ v: d, l: "Days" }, { v: h, l: "Hours" }, { v: m, l: "Mins" }, { v: s, l: "Secs" }].map(({ v, l }) => (
-        <div key={l} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center min-w-[52px]">
-          <div className="text-xl font-bold font-mono">{String(v).padStart(2, "0")}</div>
-          <div className="text-[10px] text-white/40 uppercase tracking-widest">{l}</div>
-        </div>
-      ))}
-    </div>
+    <span className="font-mono">
+      {h}h {m}m {s}s
+    </span>
   );
 }
 
-const RAFFLE = {
-  projectA: { name: "DeGods", x: "@degodsnft", verified: true, color: "purple" },
-  projectB: { name: "Okay Bears", x: "@okaybears", verified: true, color: "blue" },
-  title: "DeGods × Okay Bears Whitelist",
-  description: "DeGods is sharing 500 exclusive whitelist spots with the Okay Bears community. Enter for a chance to secure your spot in the DeGods ecosystem. One wallet per entrant — winners drawn fairly at random from all verified entries.",
-  spots: 500,
-  entries: 1243,
-  endsIn: 1000 * 60 * 60 * 42,
-  chain: "Ethereum",
-  requirements: ["Join DeGods Discord", "Follow @degodsnft on X", "Follow @okaybears on X", "Paste your wallet address"],
-};
-
-export default function RafflePage() {
-  const [tasks, setTasks] = useState({
-    discord: false,
-    followA: false,
-    followB: false,
-  });
-  const [wallet, setWallet] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [walletError, setWalletError] = useState("");
-
-  const allTasksDone = tasks.discord && tasks.followA && tasks.followB;
-  const isValidWallet = wallet.startsWith("0x") && wallet.length === 42 || 
-                        wallet.length >= 32 && wallet.length <= 44;
-  const canEnter = allTasksDone && wallet.length > 10;
-
-  const handleEnter = () => {
-    if (!wallet || wallet.length < 10) {
-      setWalletError("Please paste a valid wallet address");
-      return;
-    }
-    setWalletError("");
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-[#080808] text-white flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-6">🎉</div>
-          <h2 className="text-3xl font-bold mb-3">You're entered!</h2>
-          <p className="text-white/50 mb-2">Your wallet has been registered for the</p>
-          <p className="text-white font-semibold mb-6">{RAFFLE.title}</p>
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 text-left">
-            <div className="text-xs text-white/40 mb-1">Wallet registered</div>
-            <div className="font-mono text-sm text-white/80 break-all">{wallet}</div>
-          </div>
-          <p className="text-sm text-white/40 mb-8">
-            Keep following both accounts until the draw. Winners are notified via X.
-          </p>
-          <a href="/" className="inline-block bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-8 py-3 rounded-xl text-sm">
-            Browse more raffles
-          </a>
-        </div>
-      </div>
-    );
-  }
-
+export default function Home() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
 
-     {/* NAV */}
-<nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
-  <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
-      <span className="font-semibold text-lg">RaffleHQ</span>
-    </div>
-    <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
-      <a href="#how" className="hover:text-white transition-colors">How it works</a>
-      <a href="#raffles" className="hover:text-white transition-colors">Live Raffles</a>
-      <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
-      <a href="#" className="hover:text-white transition-colors">Projects</a>
-    </div>
-    <div className="flex items-center gap-2">
-      <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
-        Request Spots
-      </button>
-      <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
-        List My Spots
-      </button>
-    </div>
-  </div>
-</nav>
-
-      {/* BANNER */}
-      <div className="pt-16">
-        <div className="h-52 bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(124,58,237,0.3),transparent_70%)]" />
-          <div className="absolute inset-0 flex items-center justify-center gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-2xl font-bold mb-2 mx-auto">D</div>
-              <div className="text-sm font-semibold">{RAFFLE.projectA.name}</div>
-              <div className="text-xs text-white/50">{RAFFLE.projectA.x} ✓</div>
-            </div>
-            <div className="text-3xl text-white/30 font-light">×</div>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center text-2xl font-bold mb-2 mx-auto">O</div>
-              <div className="text-sm font-semibold">{RAFFLE.projectB.name}</div>
-              <div className="text-xs text-white/50">{RAFFLE.projectB.x} ✓</div>
-            </div>
+      {/* NAV */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
+            <span className="font-semibold text-lg">RaffleHQ</span>
           </div>
-          <div className="absolute top-4 right-4 bg-green-500/20 border border-green-500/30 text-green-300 text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-            Live
+          <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+            <a href="#how" className="hover:text-white transition-colors">How it works</a>
+            <a href="#raffles" className="hover:text-white transition-colors">Live Raffles</a>
+            <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
+            <a href="#" className="hover:text-white transition-colors">Projects</a>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
+              Request Spots
+            </button>
+            <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
+              List My Spots
+            </button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* CONTENT */}
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        
-        {/* TITLE ROW */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{RAFFLE.title}</h1>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full border border-purple-500/20">
-                ✓ {RAFFLE.projectA.x} verified
-              </span>
-              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/20">
-                ✓ {RAFFLE.projectB.x} verified
-              </span>
-              <span className="text-xs text-white/40">{RAFFLE.chain}</span>
-            </div>
+      {/* HERO */}
+      <section className="pt-40 pb-24 px-6 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-white/70 mb-8">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            The first verified whitelist collaboration platform
           </div>
-          <div className="flex-shrink-0">
-            <Countdown ms={RAFFLE.endsIn} />
+
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
+            Share Whitelist Spots
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
+              With Verified Projects
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed">
+            No DMs. No trust issues. Projects list their spots, partners request them,
+            both verify on X — and the raffle runs transparently on-chain.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-8 py-4 rounded-xl text-base">
+              List My Spots
+            </button>
+            <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white font-semibold px-8 py-4 rounded-xl text-base">
+              Request Spots
+            </button>
           </div>
         </div>
+      </section>
 
-        {/* STATS BAR */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
+      {/* STATS */}
+      <section className="border-y border-white/5 bg-white/[0.02]">
+        <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
-            { label: "Spots Available", value: RAFFLE.spots.toLocaleString() },
-            { label: "Total Entries", value: RAFFLE.entries.toLocaleString() },
-            { label: "Odds", value: `1 in ${Math.round(RAFFLE.entries / RAFFLE.spots)}` },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 text-center">
-              <div className="text-xl font-bold mb-1">{stat.value}</div>
-              <div className="text-xs text-white/40">{stat.label}</div>
+            { label: "Spots Shared", value: "2.4M+" },
+            { label: "Verified Projects", value: "1,200+" },
+            { label: "Raffles Completed", value: "8,500+" },
+            { label: "Wallets Collected", value: "500K+" },
+          ].map((s) => (
+            <div key={s.label}>
+              <div className="text-3xl font-bold text-white mb-1">{s.value}</div>
+              <div className="text-sm text-white/40">{s.label}</div>
             </div>
           ))}
         </div>
+      </section>
 
-        {/* MAIN LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-          {/* LEFT — INFO */}
-          <div>
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6">
-              <h3 className="font-semibold mb-3 text-sm text-white/60 uppercase tracking-widest">About this raffle</h3>
-              <p className="text-sm text-white/60 leading-relaxed">{RAFFLE.description}</p>
-            </div>
-
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6">
-              <h3 className="font-semibold mb-4 text-sm text-white/60 uppercase tracking-widest">How to enter</h3>
-              <ol className="space-y-3">
-                {RAFFLE.requirements.map((req, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-white/70">
-                    <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 text-xs flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                    {req}
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-              <h3 className="font-semibold mb-3 text-sm text-white/60 uppercase tracking-widest">Entry progress</h3>
-              <div className="flex justify-between text-xs text-white/50 mb-2">
-                <span>{RAFFLE.entries.toLocaleString()} entered</span>
-                <span>{RAFFLE.spots.toLocaleString()} spots</span>
-              </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (RAFFLE.entries / RAFFLE.spots) * 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-white/30 mt-3">One entry per wallet. Winners drawn randomly from all verified entries at close.</p>
-            </div>
+      {/* HOW IT WORKS */}
+      <section id="how" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-sm text-purple-400 font-medium mb-3 uppercase tracking-widest">How it works</div>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">From listing to winners list</h2>
+            <p className="text-white/50 max-w-xl mx-auto">
+              Every step is transparent, every project is verified, every raffle is fair.
+            </p>
           </div>
 
-          {/* RIGHT — TASKS */}
-          <div>
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 sticky top-20">
-              <h3 className="font-semibold mb-1 text-base">Complete tasks to enter</h3>
-              <p className="text-xs text-white/40 mb-6">All tasks must be completed before you can enter</p>
-
-              <div className="space-y-3 mb-6">
-
-                {/* TASK 1 - Discord */}
-                <div
-                  onClick={() => setTasks(t => ({ ...t, discord: !t.discord }))}
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    tasks.discord
-                      ? "bg-green-500/10 border-green-500/30"
-                      : "bg-white/[0.03] border-white/[0.08] hover:border-white/20"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    tasks.discord ? "bg-green-500 border-green-500" : "border-white/30"
-                  }`}>
-                    {tasks.discord && <span className="text-white text-xs">✓</span>}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-white/40 uppercase tracking-widest mb-0.5">Discord</div>
-                    <div className="text-sm font-medium">Join DeGods server & get Member role</div>
-                  </div>
-                  <span className="text-lg">💬</span>
-                </div>
-
-                {/* TASK 2 - Follow A */}
-                <div
-                  onClick={() => setTasks(t => ({ ...t, followA: !t.followA }))}
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    tasks.followA
-                      ? "bg-green-500/10 border-green-500/30"
-                      : "bg-white/[0.03] border-white/[0.08] hover:border-white/20"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    tasks.followA ? "bg-green-500 border-green-500" : "border-white/30"
-                  }`}>
-                    {tasks.followA && <span className="text-white text-xs">✓</span>}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-white/40 uppercase tracking-widest mb-0.5">X / Twitter</div>
-                    <div className="text-sm font-medium">Follow {RAFFLE.projectA.x}</div>
-                  </div>
-                  <span className="text-lg">𝕏</span>
-                </div>
-
-                {/* TASK 3 - Follow B */}
-                <div
-                  onClick={() => setTasks(t => ({ ...t, followB: !t.followB }))}
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    tasks.followB
-                      ? "bg-green-500/10 border-green-500/30"
-                      : "bg-white/[0.03] border-white/[0.08] hover:border-white/20"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    tasks.followB ? "bg-green-500 border-green-500" : "border-white/30"
-                  }`}>
-                    {tasks.followB && <span className="text-white text-xs">✓</span>}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-white/40 uppercase tracking-widest mb-0.5">X / Twitter</div>
-                    <div className="text-sm font-medium">Follow {RAFFLE.projectB.x}</div>
-                  </div>
-                  <span className="text-lg">𝕏</span>
-                </div>
-
-                {/* TASK 4 - Wallet */}
-                <div className={`p-4 rounded-xl border transition-all ${
-                  wallet.length > 10
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-white/[0.03] border-white/[0.08]"
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {STEPS.map((step, i) => (
+              <div key={i} className="relative bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 hover:border-white/20 transition-colors">
+                <div className={`text-xs font-semibold mb-3 px-2 py-1 rounded-full inline-block ${
+                  step.color === "purple" ? "bg-purple-500/20 text-purple-300" :
+                  step.color === "blue" ? "bg-blue-500/20 text-blue-300" :
+                  "bg-green-500/20 text-green-300"
                 }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      wallet.length > 10 ? "bg-green-500 border-green-500" : "border-white/30"
-                    }`}>
-                      {wallet.length > 10 && <span className="text-white text-xs">✓</span>}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-white/40 uppercase tracking-widest mb-0.5">Wallet</div>
-                      <div className="text-sm font-medium">Paste your wallet address</div>
-                    </div>
-                    <span className="text-lg">👛</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={wallet}
-                    onChange={(e) => { setWallet(e.target.value); setWalletError(""); }}
-                    placeholder="0x... or Solana address"
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm font-mono text-white/80 placeholder-white/20 focus:outline-none focus:border-purple-500/50"
-                  />
-                  {walletError && <p className="text-xs text-red-400 mt-1.5">{walletError}</p>}
+                  {step.role}
                 </div>
+                <div className="text-2xl mb-3">{step.icon}</div>
+                <div className="text-xs text-white/30 font-mono mb-2">{step.number}</div>
+                <div className="font-semibold text-sm mb-2">{step.title}</div>
+                <div className="text-xs text-white/40 leading-relaxed">{step.desc}</div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {/* ENTER BUTTON */}
-              <button
-                onClick={handleEnter}
-                disabled={!canEnter}
-                className={`w-full py-4 rounded-xl font-semibold text-base transition-all ${
-                  canEnter
-                    ? "bg-purple-600 hover:bg-purple-500 text-white cursor-pointer"
-                    : "bg-white/5 text-white/20 cursor-not-allowed"
-                }`}
-              >
-                {canEnter ? "Enter Raffle →" : `Complete ${[!tasks.discord, !tasks.followA, !tasks.followB, wallet.length < 10].filter(Boolean).length} more task${[!tasks.discord, !tasks.followA, !tasks.followB, wallet.length < 10].filter(Boolean).length !== 1 ? "s" : ""}`}
-              </button>
-
-              <p className="text-xs text-white/30 text-center mt-3">
-                Keep following both accounts until winners are drawn. We verify at draw time.
-              </p>
+      {/* X VERIFICATION BANNER */}
+      <section className="px-6 py-12">
+        <div className="max-w-4xl mx-auto bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/20 rounded-2xl p-8 md:p-12 text-center">
+          <div className="text-3xl mb-4">𝕏</div>
+          <h3 className="text-2xl md:text-3xl font-bold mb-3">Both Projects Must Verify on X</h3>
+          <p className="text-white/50 max-w-xl mx-auto text-sm leading-relaxed">
+            Before any raffle goes live, both Project A and Project B must verify their official X accounts.
+            This prevents fake projects, protects communities, and makes every collaboration 100% transparent.
+            Entrants can see exactly who is behind every raffle.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8 items-center">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm">
+              <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+              <span className="text-white/70">Project A verified</span>
+            </div>
+            <div className="text-white/30 text-sm">+</div>
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm">
+              <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+              <span className="text-white/70">Project B verified</span>
+            </div>
+            <div className="text-white/30 text-sm">=</div>
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 text-sm">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              <span className="text-green-300">Raffle goes live</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* LIVE RAFFLES */}
+      <section id="raffles" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <div className="text-sm text-purple-400 font-medium mb-2 uppercase tracking-widest">Live now</div>
+              <h2 className="text-3xl md:text-4xl font-bold">Active Collaborations</h2>
+            </div>
+            <button className="text-sm text-white/50 hover:text-white border border-white/10 px-4 py-2 rounded-lg transition-colors">
+              View all
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {LIVE_RAFFLES.map((r, i) => (
+              <div key={i} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1 cursor-pointer">
+                <div className={`h-28 bg-gradient-to-br ${r.gradient} relative`}>
+                  <div className="absolute inset-0 flex items-center justify-center gap-3">
+                    <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium">{r.xA}</div>
+                    <div className="text-white/60 text-lg">×</div>
+                    <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium">{r.xB}</div>
+                  </div>
+                  <div className="absolute top-3 right-3 bg-green-500/20 border border-green-500/30 text-green-300 text-xs px-2 py-1 rounded-full">
+                    Live
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="font-semibold mb-1">{r.projectA} x {r.projectB}</div>
+                  <div className="text-xs text-white/40 mb-4">Whitelist Collaboration</div>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-white/50 mb-1.5">
+                      <span>{r.filled} entered</span>
+                      <span>{r.spots} spots</span>
+                    </div>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                        style={{ width: `${(r.filled / r.spots) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-white/40">
+                      Ends in <span className="text-white/70"><Countdown ms={r.endsIn} /></span>
+                    </div>
+                    <button className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                      Enter
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOR BOTH SIDES */}
+      <section className="py-24 px-6 bg-white/[0.01]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Built for both sides</h2>
+            <p className="text-white/50">Whether you have spots to give or spots to get</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-purple-900/20 border border-purple-500/20 rounded-2xl p-8">
+              <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-4">Project A — Spot Owner</div>
+              <h3 className="text-xl font-bold mb-4">Share spots on your terms</h3>
+              <ul className="space-y-3 text-sm text-white/60">
+                {[
+                  "List available spots publicly",
+                  "Review partner requests before accepting",
+                  "Decide exactly how many spots each partner gets",
+                  "Full dashboard to track all collaborations",
+                  "One-click winner wallet download (CSV)",
+                  "Both projects verified on X for trust",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-purple-400 mt-0.5">✓</span> {item}
+                  </li>
+                ))}
+              </ul>
+              <button className="mt-8 w-full bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold py-3 rounded-xl text-sm">
+                List My Spots
+              </button>
+            </div>
+
+            <div className="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-8">
+              <div className="text-blue-400 text-sm font-semibold uppercase tracking-widest mb-4">Project B — Spot Requester</div>
+              <h3 className="text-xl font-bold mb-4">Get spots for your community</h3>
+              <ul className="space-y-3 text-sm text-white/60">
+                {[
+                  "Browse projects sharing spots",
+                  "Send a verified collaboration request",
+                  "See request status in real time",
+                  "Raffle goes live automatically on approval",
+                  "Your community enters on the public raffle page",
+                  "Full transparency — both X accounts shown",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">✓</span> {item}
+                  </li>
+                ))}
+              </ul>
+              <button className="mt-8 w-full bg-blue-600 hover:bg-blue-500 transition-colors text-white font-semibold py-3 rounded-xl text-sm">
+                Request Spots
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-white/5 py-12 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-xs font-bold">R</div>
+            <span className="font-semibold">RaffleHQ</span>
+            <span className="text-white/30 text-sm ml-2">The verified whitelist collaboration platform</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-white/40">
+            <a href="#" className="hover:text-white transition-colors">How it works</a>
+            <a href="#" className="hover:text-white transition-colors">NFT Calendar</a>
+            <a href="#" className="hover:text-white transition-colors">Projects</a>
+            <a href="#" className="hover:text-white transition-colors">X</a>
+          </div>
+        </div>
+      </footer>
+
     </div>
   );
 }
