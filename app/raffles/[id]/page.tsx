@@ -88,18 +88,29 @@ export default function RafflePage() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
 
-      {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
-            <span className="font-semibold text-lg">RaffleHQ</span>
-          </a>
-          <div className="text-sm text-white/40">
-            Live Raffle
-          </div>
-        </div>
-      </nav>
+     {/* NAV */}
+<nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
+  <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
+      <span className="font-semibold text-lg">RaffleHQ</span>
+    </div>
+    <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+      <a href="#how" className="hover:text-white transition-colors">How it works</a>
+      <a href="#raffles" className="hover:text-white transition-colors">Live Raffles</a>
+      <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
+      <a href="#" className="hover:text-white transition-colors">Projects</a>
+    </div>
+    <div className="flex items-center gap-2">
+      <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
+        Request Spots
+      </button>
+      <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
+        List My Spots
+      </button>
+    </div>
+  </div>
+</nav>
 
       {/* BANNER */}
       <div className="pt-16">
