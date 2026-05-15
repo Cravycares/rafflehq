@@ -1,52 +1,11 @@
+// @ts-nocheck
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { supabase } from "@/lib/supabase"
 
-const REQUESTS = [
-  {
-    id: 1,
-    project: "Okay Bears",
-    x: "@okaybears",
-    followers: "48.2K",
-    requestedSpots: 200,
-    message: "We'd love to collab with DeGods for our upcoming mint. Our community is very active and aligned with your values.",
-    pastCollabs: 3,
-    fillRate: 94,
-    completionRate: 100,
-  },
-  {
-    id: 2,
-    project: "Moonbirds",
-    x: "@moonbirds",
-    followers: "112K",
-    requestedSpots: 500,
-    message: "Moonbirds x DeGods would be a legendary collab. We have 500k holders who would love access to your WL.",
-    pastCollabs: 7,
-    fillRate: 88,
-    completionRate: 100,
-  },
-  {
-    id: 3,
-    project: "CloneX",
-    x: "@clonex",
-    followers: "89.5K",
-    requestedSpots: 150,
-    message: "We're building something big and want our community to have early access to the DeGods ecosystem.",
-    pastCollabs: 1,
-    fillRate: 41,
-    completionRate: 100,
-  },
-];
 
-const ACTIVE_RAFFLES = [
-  { id: 1, title: "DeGods × Azuki", partnerX: "@azuki", communitySpots: 280, teamSpots: 20, entries: 1847, endsIn: "2D 14H" },
-  { id: 2, title: "DeGods × Pudgy Penguins", partnerX: "@pudgypenguins", communitySpots: 90, teamSpots: 10, entries: 432, endsIn: "5H 22M" },
-];
-
-const ENDED_RAFFLES = [
-  { id: 1, title: "DeGods × BAYC", partnerX: "@boredapeyc", communitySpots: 220, teamSpots: 30, entries: 3201, endedDate: "May 10, 2026" },
-  { id: 2, title: "DeGods × Doodles", partnerX: "@doodles", communitySpots: 85, teamSpots: 15, entries: 987, endedDate: "May 7, 2026" },
-];
 
 function FillRateBadge({ rate }: { rate: number }) {
   const color =
@@ -85,12 +44,51 @@ function downloadCSV(raffleName: string, communitySpots: number, teamSpots: numb
 type Allocation = { community: string; team: string };
 
 export default function Dashboard() {
-  const [tab, setTab] = useState<"requests" | "active" | "ended">("requests");
+    const { data: session } = useSession()
+  const xHandle = (session as any)?.xHandle
+
+  const [project, setProject] = useState(null)
+const [requests, setRequests] = useState([])
+const [activeRaffles, setActiveRaffles] = useState([])
+const [endedRaffles, setEndedRaffles] = useState([])
+
+  useEffect(() => {
+    if (!xHandle) return
+    const load = async () => {
+      // Upsert project
+      const { data: proj } = await supabase
+        .from("projects")
+        .upsert({ x_handle: `@${xHandle}`, name: xHandle, x_verified: true }, { onConflict: "x_handle" })
+        .select()
+        .single()
+      setProject(proj)
+
+      if (!proj) return
+
+      // Fetch 
+      const { data: reqs } = await supabase
+        .from("")
+        .select("*, from_project:from_project_id(name, x_handle)")
+        .eq("to_project_id", proj.id)
+        .eq("status", "pending")
+      set(reqs || [])
+
+      // Fetch raffles
+      const { data: raffles } = await supabase
+        .from("raffles")
+        .select("*")
+        .eq("project_id", proj.id)
+      setActiveRaffles((raffles || []).filter((r: any) => r.status === "active"))
+      setEndedRaffles((raffles || []).filter((r: any) => r.status === "ended"))
+    }
+    load()
+  }, [xHandle])
+  const [tab, setTab] = useState<"" | "active" | "ended">("");
   const [allocations, setAllocations] = useState<Record<number, Allocation>>({});
   const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
   const [declinedIds, setDeclinedIds] = useState<number[]>([]);
 
-  const pendingCount = REQUESTS.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length;
+  const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length;
 
   const handleAccept = (id: number) => {
     const community = parseInt(allocations[id]?.community || "0");
@@ -133,7 +131,7 @@ export default function Dashboard() {
           <div>
             <div className="text-sm text-purple-400 font-medium uppercase tracking-widest mb-2">Project A Dashboard</div>
             <h1 className="text-3xl font-bold mb-1">DeGods</h1>
-            <p className="text-white/40 text-sm">Manage spot sharing, review requests, and download winners.</p>
+            <p className="text-white/40 text-sm">Manage spot sharing, review , and download winners.</p>
           </div>
           {/* MY ACCEPTANCE RATE */}
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 flex items-center gap-4 flex-shrink-0">
@@ -157,8 +155,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Total Spots Listed", value: "2,500", color: "text-white" },
-            { label: "Pending Requests", value: String(pendingCount), color: "text-yellow-400" },
-            { label: "Active Raffles", value: String(ACTIVE_RAFFLES.length), color: "text-green-400" },
+            { label: "Pending ", value: String(pendingCount), color: "text-yellow-400" },
+            { label: "Active Raffles", value: String(activeRaffles.length), color: "text-green-400" },
             { label: "Winners Drawn", value: "350", color: "text-purple-400" },
           ].map(s => (
             <div key={s.label} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
@@ -193,7 +191,7 @@ export default function Dashboard() {
         <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="font-semibold mb-1">List more spots</div>
-            <div className="text-sm text-white/50">Share additional whitelist spots and let verified projects request them.</div>
+            <div className="text-sm text-white/50">Share additional whitelist spots and let verified projects requests them.</div>
           </div>
           <button className="flex-shrink-0 bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-6 py-3 rounded-xl text-sm">+ List Spots</button>
         </div>
@@ -201,9 +199,9 @@ export default function Dashboard() {
         {/* TABS */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit">
           {([
-            { key: "requests", label: `Requests${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-            { key: "active", label: `Active (${ACTIVE_RAFFLES.length})` },
-            { key: "ended", label: `Ended (${ENDED_RAFFLES.length})` },
+            { key: "", label: `${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+            { key: "active", label: `Active (${activeRaffles.length})` },
+            { key: "ended", label: `Ended (${endedRaffles.length})` },
           ] as const).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key ? "bg-white/10 text-white" : "text-white/40 hover:text-white"}`}>
@@ -212,10 +210,10 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* REQUESTS */}
-        {tab === "requests" && (
+        {/*  */}
+        {tab === "" && (
           <div className="space-y-4">
-            {REQUESTS.map(req => {
+            {requests.map(req => {
               const isAccepted = acceptedIds.includes(req.id);
               const isDeclined = declinedIds.includes(req.id);
               const alloc = allocations[req.id];
@@ -267,7 +265,7 @@ export default function Dashboard() {
 
                       <p className="text-sm text-white/50 leading-relaxed mb-3">{req.message}</p>
                       <span className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-white/60">
-                        Requesting <strong className="text-white">{req.requestedSpots}</strong> spots
+                        requestsing <strong className="text-white">{req.requestsedSpots}</strong> spots
                       </span>
                     </div>
 
@@ -346,7 +344,7 @@ export default function Dashboard() {
               );
             })}
             {pendingCount === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📭</div><div className="text-sm">No pending requests</div></div>
+              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📭</div><div className="text-sm">No pending </div></div>
             )}
           </div>
         )}
@@ -354,7 +352,7 @@ export default function Dashboard() {
         {/* ACTIVE */}
         {tab === "active" && (
           <div className="space-y-4">
-            {ACTIVE_RAFFLES.map(r => (
+            {activeRaffles.map(r => (
               <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -383,7 +381,7 @@ export default function Dashboard() {
         {/* ENDED */}
         {tab === "ended" && (
           <div className="space-y-4">
-            {ENDED_RAFFLES.map(r => {
+            {endedRaffles.map(r => {
               const total = r.communitySpots + r.teamSpots;
               return (
                 <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

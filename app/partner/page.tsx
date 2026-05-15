@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 
-const MY_REQUESTS = [
+const MY_requestsS = [
   {
     id: 1,
     projectA: "DeGods",
     xA: "@degodsnft",
-    requestedSpots: 200,
+    requestsedSpots: 200,
     status: "accepted",
     communitySpots: 150,
     teamSpots: 5,
@@ -20,7 +20,7 @@ const MY_REQUESTS = [
     id: 2,
     projectA: "Azuki",
     xA: "@azuki",
-    requestedSpots: 100,
+    requestsedSpots: 100,
     status: "accepted",
     communitySpots: 80,
     teamSpots: 3,
@@ -33,7 +33,7 @@ const MY_REQUESTS = [
     id: 3,
     projectA: "BAYC",
     xA: "@boredapeyc",
-    requestedSpots: 500,
+    requestsedSpots: 500,
     status: "pending",
     communitySpots: 0,
     teamSpots: 0,
@@ -46,7 +46,7 @@ const MY_REQUESTS = [
     id: 4,
     projectA: "Doodles",
     xA: "@doodles",
-    requestedSpots: 75,
+    requestsedSpots: 75,
     status: "declined",
     communitySpots: 0,
     teamSpots: 0,
@@ -84,10 +84,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function PartnerDashboard() {
-  const [tab, setTab] = useState<"requests" | "wallets" | "ended">("requests");
-  const [requests, setRequests] = useState(MY_REQUESTS);
+  const [tab, setTab] = useState<"requestss" | "wallets" | "ended">("requestss");
+  const [requestss, setrequestss] = useState(MY_requestsS);
 
-  // Team wallet submission state: { requestId: string[] }
+  // Team wallet submission state: { requestsId: string[] }
   const [teamWallets, setTeamWallets] = useState<Record<number, string[]>>({
     1: ["0xAb4C...8F21", "0x9Dc1...3E44", "0x7Fb2...1A09"],
     2: [],
@@ -95,7 +95,7 @@ export default function PartnerDashboard() {
   const [newWallet, setNewWallet] = useState<Record<number, string>>({});
   const [walletErrors, setWalletErrors] = useState<Record<number, string>>({});
 
-  const acceptedWithTeamSpots = requests.filter(
+  const acceptedWithTeamSpots = requestss.filter(
     r => r.status === "accepted" && r.teamSpots > 0
   );
 
@@ -103,40 +103,40 @@ export default function PartnerDashboard() {
     r => (teamWallets[r.id]?.length || 0) < r.teamSpots
   );
 
-  const handleAddWallet = (requestId: number, maxSpots: number) => {
-    const wallet = newWallet[requestId]?.trim();
+  const handleAddWallet = (requestsId: number, maxSpots: number) => {
+    const wallet = newWallet[requestsId]?.trim();
     if (!wallet || wallet.length < 10) {
-      setWalletErrors(prev => ({ ...prev, [requestId]: "Please enter a valid wallet address" }));
+      setWalletErrors(prev => ({ ...prev, [requestsId]: "Please enter a valid wallet address" }));
       return;
     }
-    const existing = teamWallets[requestId] || [];
+    const existing = teamWallets[requestsId] || [];
     if (existing.length >= maxSpots) {
-      setWalletErrors(prev => ({ ...prev, [requestId]: `Maximum ${maxSpots} team wallets reached` }));
+      setWalletErrors(prev => ({ ...prev, [requestsId]: `Maximum ${maxSpots} team wallets reached` }));
       return;
     }
     if (existing.includes(wallet)) {
-      setWalletErrors(prev => ({ ...prev, [requestId]: "This wallet has already been added" }));
+      setWalletErrors(prev => ({ ...prev, [requestsId]: "This wallet has already been added" }));
       return;
     }
-    setTeamWallets(prev => ({ ...prev, [requestId]: [...existing, wallet] }));
-    setNewWallet(prev => ({ ...prev, [requestId]: "" }));
-    setWalletErrors(prev => ({ ...prev, [requestId]: "" }));
+    setTeamWallets(prev => ({ ...prev, [requestsId]: [...existing, wallet] }));
+    setNewWallet(prev => ({ ...prev, [requestsId]: "" }));
+    setWalletErrors(prev => ({ ...prev, [requestsId]: "" }));
 
     // Update submitted count
-    setRequests(prev => prev.map(r =>
-      r.id === requestId
+    setrequestss(prev => prev.map(r =>
+      r.id === requestsId
         ? { ...r, teamWalletsSubmitted: existing.length + 1 }
         : r
     ));
   };
 
-  const handleRemoveWallet = (requestId: number, index: number) => {
+  const handleRemoveWallet = (requestsId: number, index: number) => {
     setTeamWallets(prev => ({
       ...prev,
-      [requestId]: prev[requestId].filter((_, i) => i !== index),
+      [requestsId]: prev[requestsId].filter((_, i) => i !== index),
     }));
-    setRequests(prev => prev.map(r =>
-      r.id === requestId
+    setrequestss(prev => prev.map(r =>
+      r.id === requestsId
         ? { ...r, teamWalletsSubmitted: Math.max(0, r.teamWalletsSubmitted - 1) }
         : r
     ));
@@ -171,16 +171,16 @@ export default function PartnerDashboard() {
         <div className="mb-10">
           <div className="text-sm text-blue-400 font-medium uppercase tracking-widest mb-2">Project B Dashboard</div>
           <h1 className="text-3xl font-bold mb-1">Okay Bears</h1>
-          <p className="text-white/40 text-sm">Track your spot requests, submit team wallets, and monitor your live raffles.</p>
+          <p className="text-white/40 text-sm">Track your spot requestss, submit team wallets, and monitor your live raffles.</p>
         </div>
 
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
-            { label: "Total Requests", value: String(requests.length), color: "text-white" },
-            { label: "Accepted", value: String(requests.filter(r => r.status === "accepted").length), color: "text-green-400" },
+            { label: "Total requestss", value: String(requestss.length), color: "text-white" },
+            { label: "Accepted", value: String(requestss.filter(r => r.status === "accepted").length), color: "text-green-400" },
             { label: "Team Wallets Needed", value: String(pendingTeamWallets.length), color: "text-yellow-400" },
-            { label: "Live Raffles", value: String(requests.filter(r => r.raffleStatus === "live").length), color: "text-purple-400" },
+            { label: "Live Raffles", value: String(requestss.filter(r => r.raffleStatus === "live").length), color: "text-purple-400" },
           ].map(s => (
             <div key={s.label} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
               <div className={`text-2xl font-bold mb-1 ${s.color}`}>{s.value}</div>
@@ -207,11 +207,11 @@ export default function PartnerDashboard() {
           </div>
         )}
 
-        {/* REQUEST NEW COLLAB CTA */}
+        {/* requests NEW COLLAB CTA */}
         <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="font-semibold mb-1">Request a new collaboration</div>
-            <div className="text-sm text-white/50">Browse projects sharing spots and send a verified request.</div>
+            <div className="font-semibold mb-1">requests a new collaboration</div>
+            <div className="text-sm text-white/50">Browse projects sharing spots and send a verified requests.</div>
           </div>
           <button className="flex-shrink-0 bg-blue-600 hover:bg-blue-500 transition-colors text-white font-semibold px-6 py-3 rounded-xl text-sm">
             Browse Projects →
@@ -221,7 +221,7 @@ export default function PartnerDashboard() {
         {/* TABS */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit">
           {([
-            { key: "requests", label: `My Requests (${requests.length})` },
+            { key: "requestss", label: `My requestss (${requestss.length})` },
             { key: "wallets", label: `Team Wallets${pendingTeamWallets.length > 0 ? ` (${pendingTeamWallets.length} needed)` : ""}` },
             { key: "ended", label: `Ended (${ENDED_RAFFLES.length})` },
           ] as const).map(t => (
@@ -232,10 +232,10 @@ export default function PartnerDashboard() {
           ))}
         </div>
 
-        {/* REQUESTS TAB */}
-        {tab === "requests" && (
+        {/* requestsS TAB */}
+        {tab === "requestss" && (
           <div className="space-y-4">
-            {requests.map(req => (
+            {requestss.map(req => (
               <div key={req.id} className={`bg-white/[0.03] border rounded-2xl p-6 transition-all ${
                 req.status === "accepted" ? "border-green-500/20" :
                 req.status === "declined" ? "border-red-500/10 opacity-60" :
@@ -265,7 +265,7 @@ export default function PartnerDashboard() {
                         </>
                       )}
                       {req.status === "pending" && (
-                        <span className="text-xs text-white/30">Requested {req.requestedSpots} spots</span>
+                        <span className="text-xs text-white/30">requestsed {req.requestsedSpots} spots</span>
                       )}
                     </div>
 

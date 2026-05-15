@@ -15,8 +15,8 @@ const STEPS = [
     number: "02",
     role: "Project B",
     color: "blue",
-    title: "Request Spots",
-    desc: "Verify your X account and send a collaboration request. No DMs, no trust issues — everything is on-chain and public.",
+    title: "requests Spots",
+    desc: "Verify your X account and send a collaboration requests. No DMs, no trust issues — everything is on-chain and public.",
     icon: "📨",
   },
   {
@@ -24,7 +24,7 @@ const STEPS = [
     role: "Project A",
     color: "purple",
     title: "Review & Allocate",
-    desc: "See all incoming requests on your dashboard. Accept the ones you want and set the exact number of spots for each partner.",
+    desc: "See all incoming  on your dashboard. Accept the ones you want and set the exact number of spots for each partner.",
     icon: "✅",
   },
   {
@@ -116,7 +116,7 @@ function NavAuth() {
         onClick={() => signIn("twitter")}
         className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg"
       >
-        Request Spots
+        requests Spots
       </button>
       <button
         onClick={() => signIn("twitter")}
@@ -168,7 +168,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed">
-            No DMs. No trust issues. Projects list their spots, partners request them,
+            No DMs. No trust issues. Projects list their spots, partners requests them,
             both verify on X — and the raffle runs transparently on-chain.
           </p>
 
@@ -177,7 +177,7 @@ export default function Home() {
               List My Spots
             </button>
             <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white font-semibold px-8 py-4 rounded-xl text-base">
-              Request Spots
+              requests Spots
             </button>
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-white/60">
                 {[
                   "List available spots publicly",
-                  "Review partner requests before accepting",
+                  "Review partner  before accepting",
                   "Decide exactly how many spots each partner gets",
                   "Full dashboard to track all collaborations",
                   "One-click winner wallet download (CSV)",
@@ -347,13 +347,13 @@ export default function Home() {
             </div>
 
             <div className="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-8">
-              <div className="text-blue-400 text-sm font-semibold uppercase tracking-widest mb-4">Project B — Spot Requester</div>
+              <div className="text-blue-400 text-sm font-semibold uppercase tracking-widest mb-4">Project B — Spot requestser</div>
               <h3 className="text-xl font-bold mb-4">Get spots for your community</h3>
               <ul className="space-y-3 text-sm text-white/60">
                 {[
                   "Browse projects sharing spots",
-                  "Send a verified collaboration request",
-                  "See request status in real time",
+                  "Send a verified collaboration requests",
+                  "See requests status in real time",
                   "Raffle goes live automatically on approval",
                   "Your community enters on the public raffle page",
                   "Full transparency — both X accounts shown",
@@ -364,7 +364,7 @@ export default function Home() {
                 ))}
               </ul>
               <button className="mt-8 w-full bg-blue-600 hover:bg-blue-500 transition-colors text-white font-semibold py-3 rounded-xl text-sm">
-                Request Spots
+                requests Spots
               </button>
             </div>
           </div>
