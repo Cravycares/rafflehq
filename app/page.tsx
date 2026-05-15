@@ -1,6 +1,6 @@
-"use client";
-
-import { useState, useEffect } from "react";
+"use client"
+import { useState, useEffect } from "react"
+import { useSession, signIn, signOut } from "next-auth/react"
 
 const STEPS = [
   {
@@ -95,7 +95,38 @@ function Countdown({ ms }: { ms: number }) {
     </span>
   );
 }
-
+function NavAuth() {
+  const { data: session } = useSession()
+  if (session) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-white/60 text-sm">@{(session as any).xHandle}</span>
+        <button
+          onClick={() => signOut()}
+          className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg"
+        >
+          Sign Out
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => signIn("twitter")}
+        className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg"
+      >
+        Request Spots
+      </button>
+      <button
+        onClick={() => signIn("twitter")}
+        className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg"
+      >
+        List My Spots
+      </button>
+    </div>
+  )
+}
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
@@ -113,14 +144,7 @@ export default function Home() {
             <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
             <a href="#" className="hover:text-white transition-colors">Projects</a>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg">
-              Request Spots
-            </button>
-            <button className="bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
-              List My Spots
-            </button>
-          </div>
+          <NavAuth />
         </div>
       </nav>
 
