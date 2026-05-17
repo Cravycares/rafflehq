@@ -21,7 +21,7 @@ const handler = NextAuth({
     },
     async jwt({ token, profile }) {
       if (profile) {
-        token.xHandle = (profile as any)?.username
+        token.xHandle = (profile as any)?.data?.username || (profile as any)?.username
       }
       return token
     },

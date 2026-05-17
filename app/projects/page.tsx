@@ -151,7 +151,7 @@ export default function ProjectsPage() {
 
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-sm text-white/50">
-                    <span className="text-white font-medium">{project.spots_listed || 0}</span> spots available
+                    <span className="text-white font-medium">{project.total_spots_listed || 0}</span> spots available
                   </div>
                 </div>
 
