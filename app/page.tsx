@@ -142,7 +142,7 @@ export default function Home() {
             <a href="#how" className="hover:text-white transition-colors">How it works</a>
             <a href="#raffles" className="hover:text-white transition-colors">Live Raffles</a>
             <a href="#calendar" className="hover:text-white transition-colors">NFT Calendar</a>
-            <a href="#" className="hover:text-white transition-colors">Projects</a>
+            <a href="/projects" className="hover:text-white transition-colors">Projects</a>
           </div>
           <NavAuth />
         </div>
