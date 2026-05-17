@@ -15,7 +15,7 @@ const STEPS = [
     number: "02",
     role: "Project B",
     color: "blue",
-    title: "requests Spots",
+    title: "Request Spots",
     desc: "Verify your X account and send a collaboration requests. No DMs, no trust issues — everything is on-chain and public.",
     icon: "📨",
   },
@@ -116,7 +116,7 @@ function NavAuth() {
         onClick={() => signIn("twitter")}
         className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg"
       >
-        requests Spots
+        Request Spots
       </button>
       <button
         onClick={() => signIn("twitter")}
@@ -177,7 +177,7 @@ export default function Home() {
               List My Spots
             </button>
             <button className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white font-semibold px-8 py-4 rounded-xl text-base">
-              requests Spots
+              Request Spots
             </button>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function Home() {
                 ))}
               </ul>
               <button className="mt-8 w-full bg-blue-600 hover:bg-blue-500 transition-colors text-white font-semibold py-3 rounded-xl text-sm">
-                requests Spots
+                Request Spots
               </button>
             </div>
           </div>
