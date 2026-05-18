@@ -67,11 +67,11 @@ const [endedRaffles, setEndedRaffles] = useState([])
 
       // Fetch 
       const { data: reqs } = await supabase
-        .from("")
-        .select("*, from_project:from_project_id(name, x_handle)")
-        .eq("to_project_id", proj.id)
-        .eq("status", "pending")
-      set(reqs || [])
+  .from("collab_requests")
+  .select("*, project_b:project_b_id(name, x_handle, fill_rate, acceptance_rate, total_collabs)")
+  .eq("project_a_id", proj.id)
+  .eq("status", "pending")
+setRequests(reqs || [])
 
       // Fetch raffles
       const { data: raffles } = await supabase
@@ -90,11 +90,20 @@ const [endedRaffles, setEndedRaffles] = useState([])
 
   const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length;
 
-  const handleAccept = (id: number) => {
-    const community = parseInt(allocations[id]?.community || "0");
-    if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return; }
-    setAcceptedIds(prev => [...prev, id]);
-  };
+  const handleAccept = async (id: number) => {
+  const community = parseInt(allocations[id]?.community || "0")
+  if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
+  await supabase
+    .from("collab_requests")
+    .update({
+      status: "accepted",
+      community_spots: community,
+      team_spots: parseInt(allocations[id]?.team || "0"),
+      responded_at: new Date().toISOString()
+    })
+    .eq("id", id)
+  setAcceptedIds(prev => [...prev, id])
+}
 
   const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
     setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
@@ -233,30 +242,29 @@ const [endedRaffles, setEndedRaffles] = useState([])
                       {/* PROJECT HEADER */}
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/20 flex items-center justify-center font-bold text-blue-300 text-lg">
-                          {req.project[0]}
+                          {req.project_b?.name?.[0]}
                         </div>
                         <div>
-                          <div className="font-semibold">{req.project}</div>
+                          <div className="font-semibold">{req.project_b?.name}</div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-white/40">{req.x}</span>
+                            <span className="text-xs text-white/40">{req.project_b?.x_handle}</span>
                             <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full">✓ verified</span>
-                            <span className="text-xs text-white/30">{req.followers} followers</span>
                           </div>
                         </div>
                       </div>
 
                       {/* REPUTATION ROW */}
                       <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <FillRateBadge rate={req.fillRate} />
+                        <FillRateBadge rate={req.project_b?.fill_rate || 0} />
                         <div className="text-xs text-white/30 bg-white/[0.03] border border-white/[0.06] px-2.5 py-1 rounded-full">
-                          {req.pastCollabs} past collab{req.pastCollabs !== 1 ? "s" : ""}
+                          {req.project_b?.total_collabs || 0} past collabs
                         </div>
-                        {req.fillRate < 60 && (
+                        {(req.project_b?.fill_rate || 0) < 60 && (
                           <div className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">
                             ⚠ Low community engagement
                           </div>
                         )}
-                        {req.fillRate >= 80 && (
+                        {(req.project_b?.fill_rate || 0) >= 80 && (
                           <div className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
                             🔥 Highly engaged community
                           </div>
@@ -265,7 +273,7 @@ const [endedRaffles, setEndedRaffles] = useState([])
 
                       <p className="text-sm text-white/50 leading-relaxed mb-3">{req.message}</p>
                       <span className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-white/60">
-                        requestsing <strong className="text-white">{req.requestsedSpots}</strong> spots
+                        requestsing <strong className="text-white">{req.requested_spots}</strong> spots
                       </span>
                     </div>
 

@@ -30,27 +30,28 @@ export default function ProjectsPage() {
     p.x_handle?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleRequest = async (project) => {
-    if (!session) { signIn("twitter"); return }
-    const spots = parseInt(spotsInput)
-    if (!spots || spots <= 0) return alert("Enter a valid number of spots")
-    const xHandle = (session as any).xHandle
-    const { data: me } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("x_handle", `@${xHandle}`)
-      .single()
-    if (!me) return alert("Your project profile not found. Please sign in first.")
-    await supabase.from("requests").insert({
-      from_project_id: me.id,
-      to_project_id: project.id,
-      spots_requested: spots,
-      status: "pending",
-    })
-    alert(`Request sent to ${project.name}!`)
-    setRequesting(null)
-    setSpotsInput("")
-  }
+  const handleRequest = async (project: any) => {
+  if (!session) { signIn("twitter"); return }
+  const spots = parseInt(spotsInput)
+  if (!spots || spots <= 0) return alert("Enter a valid number of spots")
+  const xHandle = (session as any)?.xHandle
+  const { data: me } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("x_handle", `@${xHandle}`)
+    .single()
+  if (!me) return alert("Your project profile not found. Please sign in first.")
+  const { error } = await supabase.from("collab_requests").insert({
+    project_a_id: project.id,
+    project_b_id: me.id,
+    requested_spots: spots,
+    status: "pending",
+  })
+  if (error) return alert("Failed to send request: " + error.message)
+  alert(`Request sent to ${project.name}!`)
+  setRequesting(null)
+  setSpotsInput("")
+}
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
