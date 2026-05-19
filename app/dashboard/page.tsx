@@ -93,6 +93,10 @@ setRequests(reqs || [])
   const handleAccept = async (id: number) => {
   const community = parseInt(allocations[id]?.community || "0")
   if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
+  
+  const req = requests.find((r: any) => r.id === id)
+  if (!req) return
+
   await supabase
     .from("collab_requests")
     .update({
@@ -102,6 +106,18 @@ setRequests(reqs || [])
       responded_at: new Date().toISOString()
     })
     .eq("id", id)
+
+  await supabase.from("raffles").insert({
+    collab_request_id: id,
+    project_a_id: project?.id,
+    project_b_id: req.project_b_id,
+    title: `${project?.name} x ${req.project_b?.name}`,
+    community_spots: community,
+    team_spots: parseInt(allocations[id]?.team || "0"),
+    status: "live",
+    ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  })
+
   setAcceptedIds(prev => [...prev, id])
 }
 
