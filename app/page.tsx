@@ -208,7 +208,8 @@ function NavAuth() {
       <>
         {showModal && <ListSpotsModal onClose={() => setShowModal(false)} />}
         <div className="flex items-center gap-3">
-  <a href="/dashboard" className="text-sm text-white/60 hover:text-white transition-colors">Dashboard</a>
+  <a href="/dashboard" className="text-sm text-white/60 hover:text-white transition-colors">Project A</a>
+<a href="/partner" className="text-sm text-white/60 hover:text-white transition-colors">Project B</a>
   <span className="text-white/60 text-sm">@{(session as any).xHandle}</span>
           <button
             onClick={() => setShowModal(true)}

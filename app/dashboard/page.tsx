@@ -77,8 +77,8 @@ setRequests(reqs || [])
       const { data: raffles } = await supabase
         .from("raffles")
         .select("*")
-        .eq("project_id", proj.id)
-      setActiveRaffles((raffles || []).filter((r: any) => r.status === "active"))
+        .eq("project_a_id", proj.id)
+      setActiveRaffles((raffles || []).filter((r: any) => r.status === "live"))
       setEndedRaffles((raffles || []).filter((r: any) => r.status === "ended"))
     }
     load()
@@ -120,7 +120,29 @@ setRequests(reqs || [])
 
   setAcceptedIds(prev => [...prev, id])
 }
+const downloadCSV = (title: string, communitySpots: number, teamSpots: number) => {
+  const headers = ["wallet_address", "spot_type"]
+  const rows = [["0x123...example", "community"]] // placeholder — replace with real entries query
+  const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
+  const blob = new Blob([csv], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${title}-winners.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+const handleDrawWinners = async (raffle: any) => {
+  if (!confirm(`Draw winners for "${raffle.title}"? This cannot be undone.`)) return
 
+  await supabase
+    .from("raffles")
+    .update({ status: "ended", winners_drawn: true })
+    .eq("id", raffle.id)
+
+  downloadCSV(raffle.title, raffle.community_spots, raffle.team_spots)
+  setActiveRaffles(prev => prev.filter((r: any) => r.id !== raffle.id))
+}
   const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
     setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
 
@@ -387,7 +409,7 @@ setRequests(reqs || [])
                     <span className="text-white/40">{r.partnerX} ✓  •</span>
                     <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.communitySpots} community</span>
                     <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.teamSpots} team</span>
-                    <span className="text-white/40">• {r.entries.toLocaleString()} entries</span>
+                    <span className="text-white/40">• {(r.entries ?? 0).toLocaleString()} entries</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -395,7 +417,12 @@ setRequests(reqs || [])
                     <div className="text-xs text-white/40">Ends in</div>
                     <div className="font-mono font-semibold text-green-400">{r.endsIn}</div>
                   </div>
-                  <a href="/raffles/test" className="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">View →</a>
+                  <button
+  onClick={() => handleDrawWinners(r)}
+  className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+>
+  Draw Winners
+</button>
                 </div>
               </div>
             ))}
@@ -415,7 +442,7 @@ setRequests(reqs || [])
                       <span className="text-white/40">{r.partnerX} ✓</span>
                       <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.communitySpots} community</span>
                       <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.teamSpots} team</span>
-                      <span className="text-white/40">• {total} total • {r.entries.toLocaleString()} entries • {r.endedDate}</span>
+                      <span className="text-white/40">• {total} total • {(r.entries ?? 0).toLocaleString()} entries • {r.endedDate}</span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">

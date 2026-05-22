@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
 export default function RafflePage() {
   const params = useParams()
@@ -20,7 +21,15 @@ export default function RafflePage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
-
+const handleSubmit = async () => {
+  if (!wallet) return
+  const { id } = params
+  await supabase.from("raffle_entries").insert({
+    raffle_id: id,
+    wallet_address: wallet,
+  })
+  setSubmitted(true)
+}
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white px-6 py-12">
       <div className="max-w-xl mx-auto">
@@ -60,7 +69,7 @@ export default function RafflePage() {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 mb-4"
             />
             <button
-              onClick={() => wallet && setSubmitted(true)}
+              onClick={handleSubmit}
               className="w-full bg-purple-600 hover:bg-purple-500 transition-colors text-white font-medium py-3 rounded-lg"
             >
               Enter Raffle
