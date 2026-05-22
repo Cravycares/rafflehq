@@ -217,7 +217,7 @@ function NavAuth() {
             List My Spots
           </button>
           <button
-            onClick={() => signOut()}
+            onClick={() => signOut({ callbackUrl: "/" })}
             className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg"
           >
             Sign Out
