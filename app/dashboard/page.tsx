@@ -45,7 +45,7 @@ type Allocation = { community: string; team: string };
 
 export default function Dashboard() {
     const { data: session } = useSession()
-  const xHandle = (session as any)?.user?.name
+  const xHandle = (session as any)?.xHandle
 
   const [project, setProject] = useState(null)
 const [requests, setRequests] = useState([])
