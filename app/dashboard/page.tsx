@@ -57,11 +57,12 @@ const [endedRaffles, setEndedRaffles] = useState([])
     const load = async () => {
       // Upsert project
       const { data: proj } = await supabase
-        .from("projects")
-        .upsert({ x_handle: `@${xHandle}`, name: xHandle, x_verified: true }, { onConflict: "x_handle" })
-        .select()
-        .single()
+  .from("projects")
+  .select("*")
+  .eq("x_handle", `@${xHandle}`)
+  .maybeSingle()
       setProject(proj)
+      console.log("proj result:", proj, "xHandle was:", xHandle)
 
       if (!proj) return
 
