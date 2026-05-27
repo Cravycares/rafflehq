@@ -13,6 +13,8 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("")
   const [requesting, setRequesting] = useState(null)
   const [spotsInput, setSpotsInput] = useState("")
+  const [communityInput, setCommunityInput] = useState("")
+const [teamInput, setTeamInput] = useState("")
 
   useEffect(() => {
     const load = async () => {
@@ -33,8 +35,9 @@ export default function ProjectsPage() {
 
   const handleRequest = async (project: any) => {
   if (!session) { signIn("twitter"); return }
-  const spots = parseInt(spotsInput)
-  if (!spots || spots <= 0) return alert("Enter a valid number of spots")
+  const community = parseInt(communityInput)
+const team = parseInt(teamInput)
+if (!community || community <= 0) return alert("Enter a valid number of community spots")
   const xHandle = (session as any)?.xHandle
   const { data: me } = await supabase
     .from("projects")
@@ -45,7 +48,9 @@ export default function ProjectsPage() {
   const { error } = await supabase.from("collab_requests").insert({
     project_a_id: project.id,
     project_b_id: me.id,
-    requested_spots: spots,
+    community_spots: community,
+team_spots: team,
+requested_spots: community + team,
     status: "pending",
   })
   if (error) return alert("Failed to send request: " + error.message)
@@ -161,12 +166,19 @@ export default function ProjectsPage() {
                 {requesting === project.id ? (
                   <div className="space-y-2">
                     <input
-                      type="number"
-                      value={spotsInput}
-                      onChange={(e) => setSpotsInput(e.target.value)}
-                      placeholder="How many spots?"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                    />
+  type="number"
+  value={communityInput}
+  onChange={(e) => setCommunityInput(e.target.value)}
+  placeholder="Community spots"
+  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+/>
+<input
+  type="number"
+  value={teamInput}
+  onChange={(e) => setTeamInput(e.target.value)}
+  placeholder="Team spots"
+  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+/>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleRequest(project)}
