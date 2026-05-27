@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react"
 import { useSession, signIn } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 
 export default function ProjectsPage() {
   const { data: session } = useSession()
@@ -109,7 +110,7 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((project) => (
-              <div key={project.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-all">
+  <Link key={project.id} href={`/projects/${project.x_handle?.replace("@", "")}`} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-colors block">
                 {/* Project Header */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center text-xl font-bold">
@@ -189,7 +190,7 @@ export default function ProjectsPage() {
                     Request Spots
                   </button>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
