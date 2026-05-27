@@ -184,7 +184,7 @@ export default function ProjectsPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setRequesting(project.id)}
+                    onClick={(e) => { e.stopPropagation(); setRequesting(project.id) }}
                     className="w-full bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white text-sm font-medium py-2.5 rounded-xl transition-all"
                   >
                     Request Spots
