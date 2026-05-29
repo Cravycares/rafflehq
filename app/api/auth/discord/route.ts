@@ -29,9 +29,12 @@ export async function GET(request: NextRequest) {
     })
 
     const tokens = await tokenResponse.json()
-    if (!tokens.access_token) {
-      return NextResponse.redirect(new URL("/?discord_error=true", request.url))
-    }
+console.log("Discord token response:", JSON.stringify(tokens))
+
+if (!tokens.access_token) {
+  console.error("No access token:", tokens)
+  return NextResponse.redirect(new URL("/?discord_error=true", request.url))
+}
 
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
@@ -56,7 +59,8 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set("discord_token", tokens.access_token)
     return NextResponse.redirect(redirectUrl)
 
-  } catch {
-    return NextResponse.redirect(new URL("/?discord_error=true", request.url))
-  }
+  } catch (err) {
+  console.error("Discord callback error:", err)
+  return NextResponse.redirect(new URL("/?discord_error=true", request.url))
+}
 }
