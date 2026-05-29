@@ -115,13 +115,17 @@ export default function Dashboard() {
     }).select().single()
 
     if (raffle) {
-      await supabase.from("raffle_requirements").insert({
-        raffle_id: raffle.id,
-        x_follow_account: requirements.xFollow || null,
-        x_like_post_url: requirements.xLike || null,
-        x_retweet_post_url: requirements.xRetweet || null,
-      })
-    }
+  await supabase.from("raffle_requirements").insert({
+    raffle_id: raffle.id,
+    discord_server_id: req.discord_server_id || null,
+    discord_server_name: req.discord_server_name || null,
+    discord_role_id: req.discord_role_id || null,
+    discord_role_name: req.discord_role_name || null,
+    x_follow_account: requirements.xFollow || null,
+    x_like_post_url: requirements.xLike || null,
+    x_retweet_post_url: requirements.xRetweet || null,
+  })
+}
 
     setAcceptedIds(prev => [...prev, id])
     setShowModal(false)
