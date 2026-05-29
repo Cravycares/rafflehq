@@ -2,10 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
-
-
 
 function FillRateBadge({ rate }: { rate: number }) {
   const color =
@@ -24,57 +22,45 @@ function FillRateBadge({ rate }: { rate: number }) {
   );
 }
 
-function generateWallet() {
-  return "0x" + Array.from({ length: 40 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
-}
-
-function downloadCSV(raffleName: string, communitySpots: number, teamSpots: number) {
-  const rows = ["wallet_address,type"];
-  for (let i = 0; i < communitySpots; i++) rows.push(`${generateWallet()},community`);
-  for (let i = 0; i < teamSpots; i++) rows.push(`${generateWallet()},team`);
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${raffleName.replace(/\s/g, "_")}_all_spots.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 type Allocation = { community: string; team: string };
+type Requirements = { xFollow: string; xLike: string; xRetweet: string };
 
 export default function Dashboard() {
-    const { data: session } = useSession()
+  const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
 
   const [project, setProject] = useState(null)
-const [requests, setRequests] = useState([])
-const [activeRaffles, setActiveRaffles] = useState([])
-const [endedRaffles, setEndedRaffles] = useState([])
+  const [requests, setRequests] = useState([])
+  const [activeRaffles, setActiveRaffles] = useState([])
+  const [endedRaffles, setEndedRaffles] = useState([])
+  const [tab, setTab] = useState<"" | "active" | "ended">("")
+  const [allocations, setAllocations] = useState<Record<number, Allocation>>({})
+  const [acceptedIds, setAcceptedIds] = useState<number[]>([])
+  const [declinedIds, setDeclinedIds] = useState<number[]>([])
+
+  // Requirements modal
+  const [showModal, setShowModal] = useState(false)
+  const [pendingAcceptId, setPendingAcceptId] = useState<number | null>(null)
+  const [requirements, setRequirements] = useState<Requirements>({ xFollow: "", xLike: "", xRetweet: "" })
 
   useEffect(() => {
     if (!xHandle) return
     const load = async () => {
-      // Upsert project
       const { data: proj } = await supabase
-  .from("projects")
-  .select("*")
-  .eq("x_handle", `@${xHandle}`)
-  .maybeSingle()
+        .from("projects")
+        .select("*")
+        .eq("x_handle", `@${xHandle}`)
+        .maybeSingle()
       setProject(proj)
-      console.log("proj result:", proj, "xHandle was:", xHandle)
-
       if (!proj) return
 
-      // Fetch 
       const { data: reqs } = await supabase
-  .from("collab_requests")
-  .select("*, project_b:project_b_id(name, x_handle, fill_rate, acceptance_rate, total_collabs)")
-  .eq("project_a_id", proj.id)
-  .eq("status", "pending")
-setRequests(reqs || [])
+        .from("collab_requests")
+        .select("*, project_b:project_b_id(name, x_handle, fill_rate, acceptance_rate, total_collabs)")
+        .eq("project_a_id", proj.id)
+        .eq("status", "pending")
+      setRequests(reqs || [])
 
-      // Fetch raffles
       const { data: raffles } = await supabase
         .from("raffles")
         .select("*")
@@ -84,78 +70,159 @@ setRequests(reqs || [])
     }
     load()
   }, [xHandle])
-  const [tab, setTab] = useState<"" | "active" | "ended">("");
-  const [allocations, setAllocations] = useState<Record<number, Allocation>>({});
-  const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
-  const [declinedIds, setDeclinedIds] = useState<number[]>([]);
 
-  const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length;
+  const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length
+  const totalDecided = acceptedIds.length + declinedIds.length
+  const myAcceptanceRate = totalDecided > 0 ? Math.round((acceptedIds.length / totalDecided) * 100) : 34
 
-  const handleAccept = async (id: number) => {
-  const community = parseInt(allocations[id]?.community || "0")
-  if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
-  
-  const req = requests.find((r: any) => r.id === id)
-  if (!req) return
+  const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
+    setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
 
-  await supabase
-    .from("collab_requests")
-    .update({
-      status: "accepted",
+  const openRequirementsModal = (id: number) => {
+    const community = parseInt(allocations[id]?.community || "0")
+    if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
+    setPendingAcceptId(id)
+    setRequirements({ xFollow: "", xLike: "", xRetweet: "" })
+    setShowModal(true)
+  }
+
+  const handleAccept = async () => {
+    const id = pendingAcceptId
+    if (!id) return
+    const community = parseInt(allocations[id]?.community || "0")
+    const req = requests.find((r: any) => r.id === id)
+    if (!req) return
+
+    await supabase
+      .from("collab_requests")
+      .update({
+        status: "accepted",
+        community_spots: community,
+        team_spots: parseInt(allocations[id]?.team || "0"),
+        responded_at: new Date().toISOString()
+      })
+      .eq("id", id)
+
+    const { data: raffle } = await supabase.from("raffles").insert({
+      collab_request_id: id,
+      project_a_id: project?.id,
+      project_b_id: req.project_b_id,
+      title: `${project?.name} x ${req.project_b?.name}`,
       community_spots: community,
       team_spots: parseInt(allocations[id]?.team || "0"),
-      responded_at: new Date().toISOString()
-    })
-    .eq("id", id)
+      status: "live",
+      ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }).select().single()
 
-  await supabase.from("raffles").insert({
-    collab_request_id: id,
-    project_a_id: project?.id,
-    project_b_id: req.project_b_id,
-    title: `${project?.name} x ${req.project_b?.name}`,
-    community_spots: community,
-    team_spots: parseInt(allocations[id]?.team || "0"),
-    status: "live",
-    ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  })
+    if (raffle) {
+      await supabase.from("raffle_requirements").insert({
+        raffle_id: raffle.id,
+        x_follow_account: requirements.xFollow || null,
+        x_like_post_url: requirements.xLike || null,
+        x_retweet_post_url: requirements.xRetweet || null,
+      })
+    }
 
-  setAcceptedIds(prev => [...prev, id])
-}
-const downloadCSV = (title: string, communitySpots: number, teamSpots: number) => {
-  const headers = ["wallet_address", "spot_type"]
-  const rows = [["0x123...example", "community"]] // placeholder — replace with real entries query
-  const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
-  const blob = new Blob([csv], { type: "text/csv" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `${title}-winners.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-const handleDrawWinners = async (raffle: any) => {
-  if (!confirm(`Draw winners for "${raffle.title}"? This cannot be undone.`)) return
+    setAcceptedIds(prev => [...prev, id])
+    setShowModal(false)
+    setPendingAcceptId(null)
+  }
 
-  await supabase
-    .from("raffles")
-    .update({ status: "ended", winners_drawn: true })
-    .eq("id", raffle.id)
+  const handleDrawWinners = async (raffle: any) => {
+    if (!confirm(`Draw winners for "${raffle.title}"? This cannot be undone.`)) return
 
-  downloadCSV(raffle.title, raffle.community_spots, raffle.team_spots)
-  setActiveRaffles(prev => prev.filter((r: any) => r.id !== raffle.id))
-}
-  const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
-    setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+    const { data: entries } = await supabase
+      .from("raffle_entries")
+      .select("wallet_address, discord_username")
+      .eq("raffle_id", raffle.id)
+      .eq("is_fully_verified", true)
 
-  // Project A's own acceptance rate (accepted / total decided)
-  const totalDecided = acceptedIds.length + declinedIds.length;
-  const myAcceptanceRate = totalDecided > 0 ? Math.round((acceptedIds.length / totalDecided) * 100) : 34; // default shown
+    await supabase
+      .from("raffles")
+      .update({ status: "ended", winners_drawn: true })
+      .eq("id", raffle.id)
+
+    const rows = ["wallet_address,discord_username,type"]
+    const entryList = entries || []
+    const shuffled = entryList.sort(() => Math.random() - 0.5)
+    const winners = shuffled.slice(0, raffle.community_spots)
+    winners.forEach((e: any) => rows.push(`${e.wallet_address},${e.discord_username || ""},community`))
+
+    const csv = rows.join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${raffle.title}-winners.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    setActiveRaffles(prev => prev.filter((r: any) => r.id !== raffle.id))
+  }
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
 
+      {/* REQUIREMENTS MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+            <h2 className="text-lg font-bold mb-1">Set Raffle Requirements</h2>
+            <p className="text-sm text-white/50 mb-6">Set the X social tasks entrants must complete to enter this raffle.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1.5">X Account to Follow (without @)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. RaffleHQ"
+                  value={requirements.xFollow}
+                  onChange={e => setRequirements(prev => ({ ...prev, xFollow: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1.5">Post URL to Like (optional)</label>
+                <input
+                  type="text"
+                  placeholder="https://x.com/..."
+                  value={requirements.xLike}
+                  onChange={e => setRequirements(prev => ({ ...prev, xLike: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1.5">Post URL to Retweet (optional)</label>
+                <input
+                  type="text"
+                  placeholder="https://x.com/..."
+                  value={requirements.xRetweet}
+                  onChange={e => setRequirements(prev => ({ ...prev, xRetweet: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 font-medium py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAccept}
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Confirm & Go Live
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
+      <nav className="fixed top-0 left-0 right-0 z-40 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
@@ -179,9 +246,8 @@ const handleDrawWinners = async (raffle: any) => {
           <div>
             <div className="text-sm text-purple-400 font-medium uppercase tracking-widest mb-2">Project A Dashboard</div>
             <h1 className="text-3xl font-bold mb-1">{project?.name}</h1>
-            <p className="text-white/40 text-sm">Manage spot sharing, review , and download winners.</p>
+            <p className="text-white/40 text-sm">Manage spot sharing, review requests, and download winners.</p>
           </div>
-          {/* MY ACCEPTANCE RATE */}
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 flex items-center gap-4 flex-shrink-0">
             <div>
               <div className="text-xs text-white/40 mb-1">Your acceptance rate</div>
@@ -203,7 +269,7 @@ const handleDrawWinners = async (raffle: any) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Total Spots Listed", value: "2,500", color: "text-white" },
-            { label: "Pending ", value: String(pendingCount), color: "text-yellow-400" },
+            { label: "Pending Requests", value: String(pendingCount), color: "text-yellow-400" },
             { label: "Active Raffles", value: String(activeRaffles.length), color: "text-green-400" },
             { label: "Winners Drawn", value: "350", color: "text-purple-400" },
           ].map(s => (
@@ -239,7 +305,7 @@ const handleDrawWinners = async (raffle: any) => {
         <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="font-semibold mb-1">List more spots</div>
-            <div className="text-sm text-white/50">Share additional whitelist spots and let verified projects requests them.</div>
+            <div className="text-sm text-white/50">Share additional whitelist spots and let verified projects request them.</div>
           </div>
           <button className="flex-shrink-0 bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-6 py-3 rounded-xl text-sm">+ List Spots</button>
         </div>
@@ -247,7 +313,7 @@ const handleDrawWinners = async (raffle: any) => {
         {/* TABS */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit">
           {([
-            { key: "", label: `${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+            { key: "", label: `Requests${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
             { key: "active", label: `Active (${activeRaffles.length})` },
             { key: "ended", label: `Ended (${endedRaffles.length})` },
           ] as const).map(t => (
@@ -258,16 +324,16 @@ const handleDrawWinners = async (raffle: any) => {
           ))}
         </div>
 
-        {/*  */}
+        {/* REQUESTS */}
         {tab === "" && (
           <div className="space-y-4">
             {requests.map(req => {
-              const isAccepted = acceptedIds.includes(req.id);
-              const isDeclined = declinedIds.includes(req.id);
-              const alloc = allocations[req.id];
-              const community = parseInt(alloc?.community || "0");
-              const team = parseInt(alloc?.team || "0");
-              const total = community + team;
+              const isAccepted = acceptedIds.includes(req.id)
+              const isDeclined = declinedIds.includes(req.id)
+              const alloc = allocations[req.id]
+              const community = parseInt(alloc?.community || "0")
+              const team = parseInt(alloc?.team || "0")
+              const total = community + team
 
               return (
                 <div key={req.id} className={`bg-white/[0.03] border rounded-2xl p-6 transition-all ${
@@ -277,8 +343,6 @@ const handleDrawWinners = async (raffle: any) => {
                 }`}>
                   <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                     <div className="flex-1">
-
-                      {/* PROJECT HEADER */}
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/20 flex items-center justify-center font-bold text-blue-300 text-lg">
                           {req.project_b?.name?.[0]}
@@ -291,8 +355,6 @@ const handleDrawWinners = async (raffle: any) => {
                           </div>
                         </div>
                       </div>
-
-                      {/* REPUTATION ROW */}
                       <div className="flex items-center gap-2 flex-wrap mb-3">
                         <FillRateBadge rate={req.project_b?.fill_rate || 0} />
                         <div className="text-xs text-white/30 bg-white/[0.03] border border-white/[0.06] px-2.5 py-1 rounded-full">
@@ -309,14 +371,12 @@ const handleDrawWinners = async (raffle: any) => {
                           </div>
                         )}
                       </div>
-
                       <p className="text-sm text-white/50 leading-relaxed mb-3">{req.message}</p>
                       <span className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-white/60">
-                        requestsing <strong className="text-white">{req.requested_spots}</strong> spots
+                        Requesting <strong className="text-white">{req.requested_spots}</strong> spots
                       </span>
                     </div>
 
-                    {/* ALLOCATION PANEL */}
                     {!isAccepted && !isDeclined && (
                       <div className="flex flex-col gap-3 min-w-[210px]">
                         <div className="bg-black/20 border border-white/[0.08] rounded-xl p-4">
@@ -360,9 +420,9 @@ const handleDrawWinners = async (raffle: any) => {
                             </div>
                           )}
                         </div>
-                        <button onClick={() => handleAccept(req.id)}
+                        <button onClick={() => openRequirementsModal(req.id)}
                           className="w-full bg-green-600 hover:bg-green-500 transition-colors text-white font-medium py-2.5 rounded-xl text-sm">
-                          Accept & Allocate
+                          Accept & Set Requirements
                         </button>
                         <button onClick={() => setDeclinedIds(prev => [...prev, req.id])}
                           className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
@@ -388,10 +448,10 @@ const handleDrawWinners = async (raffle: any) => {
                     )}
                   </div>
                 </div>
-              );
+              )
             })}
             {pendingCount === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📭</div><div className="text-sm">No pending </div></div>
+              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📭</div><div className="text-sm">No pending requests</div></div>
             )}
           </div>
         )}
@@ -407,26 +467,21 @@ const handleDrawWinners = async (raffle: any) => {
                     <span className="font-semibold">{r.title}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className="text-white/40">{r.partnerX} ✓  •</span>
-                    <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.communitySpots} community</span>
-                    <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.teamSpots} team</span>
-                    <span className="text-white/40">• {(r.entries ?? 0).toLocaleString()} entries</span>
+                    <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
+                    <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-xs text-white/40">Ends in</div>
-                    <div className="font-mono font-semibold text-green-400">{r.endsIn}</div>
-                  </div>
-                  <button
-  onClick={() => handleDrawWinners(r)}
-  className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
->
-  Draw Winners
-</button>
-                </div>
+                <button
+                  onClick={() => handleDrawWinners(r)}
+                  className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Draw Winners
+                </button>
               </div>
             ))}
+            {activeRaffles.length === 0 && (
+              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">🎯</div><div className="text-sm">No active raffles</div></div>
+            )}
           </div>
         )}
 
@@ -434,31 +489,30 @@ const handleDrawWinners = async (raffle: any) => {
         {tab === "ended" && (
           <div className="space-y-4">
             {endedRaffles.map(r => {
-              const total = r.communitySpots + r.teamSpots;
+              const total = (r.community_spots || 0) + (r.team_spots || 0)
               return (
                 <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
                     <div className="font-semibold mb-2">{r.title}</div>
                     <div className="flex items-center gap-2 text-xs flex-wrap">
-                      <span className="text-white/40">{r.partnerX} ✓</span>
-                      <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.communitySpots} community</span>
-                      <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.teamSpots} team</span>
-                      <span className="text-white/40">• {total} total • {(r.entries ?? 0).toLocaleString()} entries • {r.endedDate}</span>
+                      <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
+                      <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
+                      <span className="text-white/40">• {total} total</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
-                    <button onClick={() => downloadCSV(r.title, r.communitySpots, r.teamSpots)}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
-                      ⬇ Download all {total} wallets (.csv)
-                    </button>
-                    <div className="text-xs text-white/30">{r.communitySpots} raffle winners + {r.teamSpots} team spots</div>
-                  </div>
+                  <button onClick={() => handleDrawWinners(r)}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                    ⬇ Download {total} wallets (.csv)
+                  </button>
                 </div>
-              );
+              )
             })}
+            {endedRaffles.length === 0 && (
+              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📊</div><div className="text-sm">No ended raffles yet</div></div>
+            )}
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
