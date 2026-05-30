@@ -105,7 +105,7 @@ function RafflePageInner() {
       client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
       redirect_uri: `${window.location.origin}/api/auth/discord`,
       response_type: "code",
-      scope: "identify guilds guilds.members.read",
+      scope: "identify guilds",
       state,
     })
     window.location.href = `https://discord.com/oauth2/authorize?${discordParams}`
