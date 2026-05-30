@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     state = stateParam ? JSON.parse(atob(stateParam)) : {}
   } catch {}
 
+  const origin = new URL(request.url).origin
+  const redirectUri = `${origin}/api/auth/discord`
+
   try {
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
@@ -24,24 +27,23 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.DISCORD_CLIENT_SECRET!,
         grant_type: "authorization_code",
         code,
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/discord`,
+        redirect_uri: redirectUri,
       }),
     })
 
     const tokens = await tokenResponse.json()
-console.log("Discord token response:", JSON.stringify(tokens))
+    console.log("Discord token response:", JSON.stringify(tokens))
 
-if (!tokens.access_token) {
-  console.error("No access token:", tokens)
-  return NextResponse.redirect(new URL("/?discord_error=true", request.url))
-}
+    if (!tokens.access_token) {
+      const errorInfo = encodeURIComponent(JSON.stringify(tokens))
+      return NextResponse.redirect(new URL(`/?discord_error=${errorInfo}`, request.url))
+    }
 
     const userResponse = await fetch("https://discord.com/api/users/@me", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
     const discordUser = await userResponse.json()
 
-    // Handle request flow (from projects page)
     if (state.from === "request") {
       const redirectUrl = new URL("/projects", request.url)
       redirectUrl.searchParams.set("discord_token", tokens.access_token)
@@ -51,7 +53,6 @@ if (!tokens.access_token) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Handle raffle entry flow
     const raffleId = state.raffleId
     const redirectUrl = new URL(`/raffles/${raffleId}`, request.url)
     redirectUrl.searchParams.set("discord_id", discordUser.id)
@@ -60,7 +61,7 @@ if (!tokens.access_token) {
     return NextResponse.redirect(redirectUrl)
 
   } catch (err) {
-  console.error("Discord callback error:", err)
-  return NextResponse.redirect(new URL("/?discord_error=true", request.url))
-}
+    console.error("Discord callback error:", err)
+    return NextResponse.redirect(new URL(`/?discord_error=${encodeURIComponent(String(err))}`, request.url))
+  }
 }
