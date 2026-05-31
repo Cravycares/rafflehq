@@ -27,7 +27,8 @@ type Requirements = {
   xFollows: string[]
   xLikes: string[]
   xRetweets: string[]
-  durationDays: string
+  startsAt: string
+  endsAt: string
 }
 
 export default function Dashboard() {
@@ -87,13 +88,18 @@ export default function Dashboard() {
   const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
     setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
 
-  const openRequirementsModal = (id: number) => {
-    const community = parseInt(allocations[id]?.community || "0")
-    if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
-    setPendingAcceptId(id)
-    setRequirements({ xFollows: [""], xLikes: [""], xRetweets: [""], durationDays: "7" })
-    setShowModal(true)
-  }
+  const now = new Date()
+const defaultStart = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+const defaultEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+const fmt = (d: Date) => d.toISOString().slice(0, 16) // format for datetime-local input
+
+setRequirements({
+  xFollows: [""],
+  xLikes: [""],
+  xRetweets: [""],
+  startsAt: fmt(defaultStart),
+  endsAt: fmt(defaultEnd),
+})
 
   const updateArrayField = (field: "xFollows" | "xLikes" | "xRetweets", index: number, value: string) => {
     setRequirements(prev => {
@@ -136,7 +142,8 @@ export default function Dashboard() {
       community_spots: community,
       team_spots: parseInt(allocations[id]?.team || "0"),
       status: "live",
-      ends_at: new Date(Date.now() + parseInt(requirements.durationDays || "7") * 24 * 60 * 60 * 1000).toISOString(),
+      starts_at: new Date(requirements.startsAt).toISOString(),
+      ends_at: new Date(requirements.endsAt).toISOString(),
     }).select().single()
 
     if (raffle) {
@@ -285,19 +292,27 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Duration */}
-              <div>
-                <label className="text-xs text-white/50 block mb-1.5">Raffle Duration (days)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  placeholder="e.g. 7"
-                  value={requirements.durationDays}
-                  onChange={e => setRequirements(prev => ({ ...prev, durationDays: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                />
-              </div>
+              {/* Start Time */}
+<div>
+  <label className="text-xs text-white/50 block mb-1.5">Raffle Start Time</label>
+  <input
+    type="datetime-local"
+    value={requirements.startsAt}
+    onChange={e => setRequirements(prev => ({ ...prev, startsAt: e.target.value }))}
+    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]"
+  />
+</div>
+
+{/* End Time */}
+<div>
+  <label className="text-xs text-white/50 block mb-1.5">Raffle End Time</label>
+  <input
+    type="datetime-local"
+    value={requirements.endsAt}
+    onChange={e => setRequirements(prev => ({ ...prev, endsAt: e.target.value }))}
+    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]"
+  />
+</div>
 
             </div>
 
