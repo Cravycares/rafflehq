@@ -23,7 +23,8 @@ function RafflePageInner() {
 
   const [wallet, setWallet] = useState("")
   const [submitted, setSubmitted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState({ hours: 23, minutes: 59, seconds: 59 })
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
+const [endsAt, setEndsAt] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<Requirements | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -37,17 +38,25 @@ function RafflePageInner() {
   const [xRetweetDone, setXRetweetDone] = useState(false)
 
   useEffect(() => {
-    const fetchRequirements = async () => {
-      const { data } = await supabase
-        .from("raffle_requirements")
-        .select("*")
-        .eq("raffle_id", raffleId)
-        .single()
-      setRequirements(data)
-      setLoading(false)
-    }
-    fetchRequirements()
-  }, [raffleId])
+  const fetchData = async () => {
+    const { data: req } = await supabase
+      .from("raffle_requirements")
+      .select("*")
+      .eq("raffle_id", raffleId)
+      .single()
+    setRequirements(req)
+
+    const { data: raffle } = await supabase
+      .from("raffles")
+      .select("ends_at")
+      .eq("id", raffleId)
+      .single()
+    if (raffle?.ends_at) setEndsAt(raffle.ends_at)
+
+    setLoading(false)
+  }
+  fetchData()
+}, [raffleId])
 
   useEffect(() => {
     const discordId = searchParams.get("discord_id")
@@ -60,16 +69,21 @@ function RafflePageInner() {
   }, [searchParams, requirements])
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 }
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 }
-        return prev
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+  if (!endsAt) return
+  const timer = setInterval(() => {
+    const diff = new Date(endsAt).getTime() - Date.now()
+    if (diff <= 0) {
+      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+      clearInterval(timer)
+      return
+    }
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    setTimeLeft({ hours, minutes, seconds })
+  }, 1000)
+  return () => clearInterval(timer)
+}, [endsAt])
 
   const verifyDiscordRole = async (token: string, userId: string) => {
     if (!requirements) return

@@ -23,7 +23,7 @@ function FillRateBadge({ rate }: { rate: number }) {
 }
 
 type Allocation = { community: string; team: string };
-type Requirements = { xFollow: string; xLike: string; xRetweet: string };
+type Requirements = { xFollow: string; xLike: string; xRetweet: string; durationDays: string }
 
 export default function Dashboard() {
   const { data: session } = useSession()
@@ -41,7 +41,7 @@ export default function Dashboard() {
   // Requirements modal
   const [showModal, setShowModal] = useState(false)
   const [pendingAcceptId, setPendingAcceptId] = useState<number | null>(null)
-  const [requirements, setRequirements] = useState<Requirements>({ xFollow: "", xLike: "", xRetweet: "" })
+  const [requirements, setRequirements] = useState<Requirements>({ xFollow: "", xLike: "", xRetweet: "", durationDays: "7" })
 
   useEffect(() => {
     if (!xHandle) return
@@ -111,7 +111,7 @@ export default function Dashboard() {
       community_spots: community,
       team_spots: parseInt(allocations[id]?.team || "0"),
       status: "live",
-      ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ends_at: new Date(Date.now() + parseInt(requirements.durationDays) * 24 * 60 * 60 * 1000).toISOString(),
     }).select().single()
 
     if (raffle) {
@@ -206,7 +206,18 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-
+<div>
+  <label className="text-xs text-white/50 block mb-1.5">Raffle Duration (days)</label>
+  <input
+    type="number"
+    min="1"
+    max="30"
+    placeholder="e.g. 7"
+    value={requirements.durationDays}
+    onChange={e => setRequirements(prev => ({ ...prev, durationDays: e.target.value }))}
+    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+  />
+</div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowModal(false)}
