@@ -50,6 +50,10 @@ export default function Dashboard() {
   const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
 
+  const [mounted, setMounted] = useState(false)
+useEffect(() => { setMounted(true) }, [])
+if (!mounted) return null
+
   const [project, setProject] = useState(null)
   const [requests, setRequests] = useState([])
   const [activeRaffles, setActiveRaffles] = useState([])
