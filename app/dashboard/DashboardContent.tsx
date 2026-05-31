@@ -483,24 +483,33 @@ export default function DashboardContent() {
 
         {tab === "active" && (
           <div className="space-y-4">
-            {activeRaffles.map(r => (
-              <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="font-semibold">{r.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
-                    <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
-                    {r.ends_at && <span className="text-white/40">• Ends {new Date(r.ends_at).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-                <button onClick={() => handleDrawWinners(r)} className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                  Draw Winners
-                </button>
-              </div>
-            ))}
+            {activeRaffles.map(r => {
+  const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
+  return (
+    <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="font-semibold">{r.title}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
+          <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
+          {r.ends_at && <span className="text-white/40">• Ends {new Date(r.ends_at).toLocaleDateString()}</span>}
+        </div>
+      </div>
+      {hasEnded ? (
+        <button onClick={() => handleDrawWinners(r)} className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+          Draw Winners
+        </button>
+      ) : (
+        <div className="text-xs text-white/40 border border-white/10 px-4 py-2 rounded-lg">
+          Raffle ends {new Date(r.ends_at).toLocaleString()}
+        </div>
+      )}
+    </div>
+  )
+})}
             {activeRaffles.length === 0 && (
               <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">🎯</div><div className="text-sm">No active raffles</div></div>
             )}
