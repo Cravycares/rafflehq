@@ -1,5 +1,6 @@
 // @ts-nocheck
 "use client";
+
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
@@ -50,10 +51,8 @@ export default function Dashboard() {
   const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
 
+  // ALL state declarations before any conditional returns
   const [mounted, setMounted] = useState(false)
-useEffect(() => { setMounted(true) }, [])
-if (!mounted) return null
-
   const [project, setProject] = useState(null)
   const [requests, setRequests] = useState([])
   const [activeRaffles, setActiveRaffles] = useState([])
@@ -62,10 +61,12 @@ if (!mounted) return null
   const [allocations, setAllocations] = useState<Record<number, Allocation>>({})
   const [acceptedIds, setAcceptedIds] = useState<number[]>([])
   const [declinedIds, setDeclinedIds] = useState<number[]>([])
-
   const [showModal, setShowModal] = useState(false)
   const [pendingAcceptId, setPendingAcceptId] = useState<number | null>(null)
-  const [requirements, setRequirements] = useState<Requirements>(getDefaultRequirements())
+  const [requirements, setRequirements] = useState<Requirements>(() => getDefaultRequirements())
+
+  // ALL effects before any conditional returns
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (!xHandle) return
@@ -94,6 +95,9 @@ if (!mounted) return null
     }
     load()
   }, [xHandle])
+
+  // NOW safe to do conditional return after all hooks
+  if (!mounted) return null
 
   const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length
   const totalDecided = acceptedIds.length + declinedIds.length
@@ -216,8 +220,6 @@ if (!mounted) return null
             <p className="text-sm text-white/50 mb-6">Set when the raffle runs and what entrants must complete.</p>
 
             <div className="space-y-5">
-
-              {/* Start Time */}
               <div>
                 <label className="text-xs text-white/50 block mb-1.5">Raffle Start Time</label>
                 <input
@@ -228,7 +230,6 @@ if (!mounted) return null
                 />
               </div>
 
-              {/* End Time */}
               <div>
                 <label className="text-xs text-white/50 block mb-1.5">Raffle End Time</label>
                 <input
@@ -239,7 +240,6 @@ if (!mounted) return null
                 />
               </div>
 
-              {/* X Accounts to Follow */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs text-white/50">X Accounts to Follow</label>
@@ -261,7 +261,6 @@ if (!mounted) return null
                 ))}
               </div>
 
-              {/* Post URLs to Like */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs text-white/50">Post URLs to Like</label>
@@ -283,7 +282,6 @@ if (!mounted) return null
                 ))}
               </div>
 
-              {/* Post URLs to Retweet */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs text-white/50">Post URLs to Retweet</label>
@@ -304,18 +302,11 @@ if (!mounted) return null
                   </div>
                 ))}
               </div>
-
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 font-medium py-2.5 rounded-xl text-sm transition-colors"
-              >Cancel</button>
-              <button
-                onClick={handleAccept}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
-              >Confirm & Go Live</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 font-medium py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
+              <button onClick={handleAccept} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-colors">Confirm & Go Live</button>
             </div>
           </div>
         </div>
@@ -340,8 +331,6 @@ if (!mounted) return null
       </nav>
 
       <div className="pt-24 pb-16 px-6 max-w-6xl mx-auto">
-
-        {/* HEADER */}
         <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="text-sm text-purple-400 font-medium uppercase tracking-widest mb-2">Project A Dashboard</div>
@@ -365,7 +354,6 @@ if (!mounted) return null
           </div>
         </div>
 
-        {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Total Spots Listed", value: "2,500", color: "text-white" },
@@ -380,7 +368,6 @@ if (!mounted) return null
           ))}
         </div>
 
-        {/* HOW SPOTS WORK */}
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 mb-8">
           <div className="text-sm font-semibold mb-3 text-white/70">How spot allocation works</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -401,7 +388,6 @@ if (!mounted) return null
           </div>
         </div>
 
-        {/* CTA */}
         <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="font-semibold mb-1">List more spots</div>
@@ -410,7 +396,6 @@ if (!mounted) return null
           <button className="flex-shrink-0 bg-purple-600 hover:bg-purple-500 transition-colors text-white font-semibold px-6 py-3 rounded-xl text-sm">+ List Spots</button>
         </div>
 
-        {/* TABS */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit">
           {([
             { key: "", label: `Requests${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
@@ -424,7 +409,6 @@ if (!mounted) return null
           ))}
         </div>
 
-        {/* REQUESTS */}
         {tab === "" && (
           <div className="space-y-4">
             {requests.map(req => {
@@ -434,7 +418,6 @@ if (!mounted) return null
               const community = parseInt(alloc?.community || "0")
               const team = parseInt(alloc?.team || "0")
               const total = community + team
-
               return (
                 <div key={req.id} className={`bg-white/[0.03] border rounded-2xl p-6 transition-all ${
                   isAccepted ? "border-green-500/30 bg-green-500/5" :
@@ -461,14 +444,10 @@ if (!mounted) return null
                           {req.project_b?.total_collabs || 0} past collabs
                         </div>
                         {(req.project_b?.fill_rate || 0) < 60 && (
-                          <div className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">
-                            ⚠ Low community engagement
-                          </div>
+                          <div className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">⚠ Low community engagement</div>
                         )}
                         {(req.project_b?.fill_rate || 0) >= 80 && (
-                          <div className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
-                            🔥 Highly engaged community
-                          </div>
+                          <div className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">🔥 Highly engaged community</div>
                         )}
                       </div>
                       <p className="text-sm text-white/50 leading-relaxed mb-3">{req.message}</p>
@@ -542,7 +521,6 @@ if (!mounted) return null
                         <div className="text-xs text-green-400/60 mt-2">Raffle now live ✓</div>
                       </div>
                     )}
-
                     {isDeclined && (
                       <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 text-sm px-4 py-2 rounded-xl h-fit">✕ Declined</div>
                     )}
@@ -556,7 +534,6 @@ if (!mounted) return null
           </div>
         )}
 
-        {/* ACTIVE */}
         {tab === "active" && (
           <div className="space-y-4">
             {activeRaffles.map(r => (
@@ -572,10 +549,7 @@ if (!mounted) return null
                     {r.ends_at && <span className="text-white/40">• Ends {new Date(r.ends_at).toLocaleDateString()}</span>}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDrawWinners(r)}
-                  className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
+                <button onClick={() => handleDrawWinners(r)} className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
                   Draw Winners
                 </button>
               </div>
@@ -586,7 +560,6 @@ if (!mounted) return null
           </div>
         )}
 
-        {/* ENDED */}
         {tab === "ended" && (
           <div className="space-y-4">
             {endedRaffles.map(r => {
@@ -601,8 +574,7 @@ if (!mounted) return null
                       <span className="text-white/40">• {total} total</span>
                     </div>
                   </div>
-                  <button onClick={() => handleDrawWinners(r)}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                  <button onClick={() => handleDrawWinners(r)} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
                     ⬇ Download {total} wallets (.csv)
                   </button>
                 </div>
