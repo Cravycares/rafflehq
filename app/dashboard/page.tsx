@@ -23,7 +23,12 @@ function FillRateBadge({ rate }: { rate: number }) {
 }
 
 type Allocation = { community: string; team: string };
-type Requirements = { xFollow: string; xLike: string; xRetweet: string; durationDays: string }
+type Requirements = {
+  xFollows: string[]
+  xLikes: string[]
+  xRetweets: string[]
+  durationDays: string
+}
 
 export default function Dashboard() {
   const { data: session } = useSession()
@@ -38,10 +43,14 @@ export default function Dashboard() {
   const [acceptedIds, setAcceptedIds] = useState<number[]>([])
   const [declinedIds, setDeclinedIds] = useState<number[]>([])
 
-  // Requirements modal
   const [showModal, setShowModal] = useState(false)
   const [pendingAcceptId, setPendingAcceptId] = useState<number | null>(null)
-  const [requirements, setRequirements] = useState<Requirements>({ xFollow: "", xLike: "", xRetweet: "", durationDays: "7" })
+  const [requirements, setRequirements] = useState<Requirements>({
+    xFollows: [""],
+    xLikes: [""],
+    xRetweets: [""],
+    durationDays: "7"
+  })
 
   useEffect(() => {
     if (!xHandle) return
@@ -82,8 +91,24 @@ export default function Dashboard() {
     const community = parseInt(allocations[id]?.community || "0")
     if (!community || community <= 0) { alert("Please enter at least 1 community spot."); return }
     setPendingAcceptId(id)
-    setRequirements({ xFollow: "", xLike: "", xRetweet: "" })
+    setRequirements({ xFollows: [""], xLikes: [""], xRetweets: [""], durationDays: "7" })
     setShowModal(true)
+  }
+
+  const updateArrayField = (field: "xFollows" | "xLikes" | "xRetweets", index: number, value: string) => {
+    setRequirements(prev => {
+      const updated = [...prev[field]]
+      updated[index] = value
+      return { ...prev, [field]: updated }
+    })
+  }
+
+  const addArrayField = (field: "xFollows" | "xLikes" | "xRetweets") => {
+    setRequirements(prev => ({ ...prev, [field]: [...prev[field], ""] }))
+  }
+
+  const removeArrayField = (field: "xFollows" | "xLikes" | "xRetweets", index: number) => {
+    setRequirements(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }))
   }
 
   const handleAccept = async () => {
@@ -111,21 +136,21 @@ export default function Dashboard() {
       community_spots: community,
       team_spots: parseInt(allocations[id]?.team || "0"),
       status: "live",
-      ends_at: new Date(Date.now() + parseInt(requirements.durationDays) * 24 * 60 * 60 * 1000).toISOString(),
+      ends_at: new Date(Date.now() + parseInt(requirements.durationDays || "7") * 24 * 60 * 60 * 1000).toISOString(),
     }).select().single()
 
     if (raffle) {
-  await supabase.from("raffle_requirements").insert({
-    raffle_id: raffle.id,
-    discord_server_id: req.discord_server_id || null,
-    discord_server_name: req.discord_server_name || null,
-    discord_role_id: req.discord_role_id || null,
-    discord_role_name: req.discord_role_name || null,
-    x_follow_account: requirements.xFollow || null,
-    x_like_post_url: requirements.xLike || null,
-    x_retweet_post_url: requirements.xRetweet || null,
-  })
-}
+      await supabase.from("raffle_requirements").insert({
+        raffle_id: raffle.id,
+        discord_server_id: req.discord_server_id || null,
+        discord_server_name: req.discord_server_name || null,
+        discord_role_id: req.discord_role_id || null,
+        discord_role_name: req.discord_role_name || null,
+        x_follow_accounts: requirements.xFollows.filter(v => v.trim()),
+        x_like_post_urls: requirements.xLikes.filter(v => v.trim()),
+        x_retweet_post_urls: requirements.xRetweets.filter(v => v.trim()),
+      })
+    }
 
     setAcceptedIds(prev => [...prev, id])
     setShowModal(false)
@@ -170,54 +195,112 @@ export default function Dashboard() {
       {/* REQUIREMENTS MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-1">Set Raffle Requirements</h2>
             <p className="text-sm text-white/50 mb-6">Set the X social tasks entrants must complete to enter this raffle.</p>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
+
+              {/* X Accounts to Follow */}
               <div>
-                <label className="text-xs text-white/50 block mb-1.5">X Account to Follow (without @)</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-white/50">X Accounts to Follow</label>
+                  <button
+                    onClick={() => addArrayField("xFollows")}
+                    className="text-xs text-purple-400 hover:text-purple-300"
+                  >+ Add</button>
+                </div>
+                {requirements.xFollows.map((val, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. RaffleHQ"
+                      value={val}
+                      onChange={e => updateArrayField("xFollows", i, e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                    />
+                    {requirements.xFollows.length > 1 && (
+                      <button
+                        onClick={() => removeArrayField("xFollows", i)}
+                        className="text-white/30 hover:text-red-400 px-2"
+                      >✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Post URLs to Like */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-white/50">Post URLs to Like</label>
+                  <button
+                    onClick={() => addArrayField("xLikes")}
+                    className="text-xs text-purple-400 hover:text-purple-300"
+                  >+ Add</button>
+                </div>
+                {requirements.xLikes.map((val, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="https://x.com/..."
+                      value={val}
+                      onChange={e => updateArrayField("xLikes", i, e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                    />
+                    {requirements.xLikes.length > 1 && (
+                      <button
+                        onClick={() => removeArrayField("xLikes", i)}
+                        className="text-white/30 hover:text-red-400 px-2"
+                      >✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Post URLs to Retweet */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-white/50">Post URLs to Retweet</label>
+                  <button
+                    onClick={() => addArrayField("xRetweets")}
+                    className="text-xs text-purple-400 hover:text-purple-300"
+                  >+ Add</button>
+                </div>
+                {requirements.xRetweets.map((val, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="https://x.com/..."
+                      value={val}
+                      onChange={e => updateArrayField("xRetweets", i, e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                    />
+                    {requirements.xRetweets.length > 1 && (
+                      <button
+                        onClick={() => removeArrayField("xRetweets", i)}
+                        className="text-white/30 hover:text-red-400 px-2"
+                      >✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="text-xs text-white/50 block mb-1.5">Raffle Duration (days)</label>
                 <input
-                  type="text"
-                  placeholder="e.g. RaffleHQ"
-                  value={requirements.xFollow}
-                  onChange={e => setRequirements(prev => ({ ...prev, xFollow: e.target.value }))}
+                  type="number"
+                  min="1"
+                  max="30"
+                  placeholder="e.g. 7"
+                  value={requirements.durationDays}
+                  onChange={e => setRequirements(prev => ({ ...prev, durationDays: e.target.value }))}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
                 />
               </div>
-              <div>
-                <label className="text-xs text-white/50 block mb-1.5">Post URL to Like (optional)</label>
-                <input
-                  type="text"
-                  placeholder="https://x.com/..."
-                  value={requirements.xLike}
-                  onChange={e => setRequirements(prev => ({ ...prev, xLike: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/50 block mb-1.5">Post URL to Retweet (optional)</label>
-                <input
-                  type="text"
-                  placeholder="https://x.com/..."
-                  value={requirements.xRetweet}
-                  onChange={e => setRequirements(prev => ({ ...prev, xRetweet: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                />
-              </div>
+
             </div>
-<div>
-  <label className="text-xs text-white/50 block mb-1.5">Raffle Duration (days)</label>
-  <input
-    type="number"
-    min="1"
-    max="30"
-    placeholder="e.g. 7"
-    value={requirements.durationDays}
-    onChange={e => setRequirements(prev => ({ ...prev, durationDays: e.target.value }))}
-    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-  />
-</div>
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowModal(false)}

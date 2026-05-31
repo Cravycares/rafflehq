@@ -11,9 +11,9 @@ type Requirements = {
   discord_server_name: string
   discord_role_id: string
   discord_role_name: string
-  x_follow_account: string | null
-  x_like_post_url: string | null
-  x_retweet_post_url: string | null
+  x_follow_accounts: string[]
+  x_like_post_urls: string[]
+  x_retweet_post_urls: string[]
 }
 
 function RafflePageInner() {
@@ -24,7 +24,7 @@ function RafflePageInner() {
   const [wallet, setWallet] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
-const [endsAt, setEndsAt] = useState<string | null>(null)
+  const [endsAt, setEndsAt] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<Requirements | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -33,30 +33,37 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
   const [discordError, setDiscordError] = useState("")
   const [discordUser, setDiscordUser] = useState<{ id: string; username: string } | null>(null)
 
-  const [xFollowDone, setXFollowDone] = useState(false)
-  const [xLikeDone, setXLikeDone] = useState(false)
-  const [xRetweetDone, setXRetweetDone] = useState(false)
+  // Track completion per task index
+  const [followsDone, setFollowsDone] = useState<boolean[]>([])
+  const [likesDone, setLikesDone] = useState<boolean[]>([])
+  const [retweetsDone, setRetweetsDone] = useState<boolean[]>([])
 
   useEffect(() => {
-  const fetchData = async () => {
-    const { data: req } = await supabase
-      .from("raffle_requirements")
-      .select("*")
-      .eq("raffle_id", raffleId)
-      .single()
-    setRequirements(req)
+    const fetchData = async () => {
+      const { data: req } = await supabase
+        .from("raffle_requirements")
+        .select("*")
+        .eq("raffle_id", raffleId)
+        .single()
+      setRequirements(req)
 
-    const { data: raffle } = await supabase
-      .from("raffles")
-      .select("ends_at")
-      .eq("id", raffleId)
-      .single()
-    if (raffle?.ends_at) setEndsAt(raffle.ends_at)
+      if (req) {
+        setFollowsDone(new Array(req.x_follow_accounts?.length || 0).fill(false))
+        setLikesDone(new Array(req.x_like_post_urls?.length || 0).fill(false))
+        setRetweetsDone(new Array(req.x_retweet_post_urls?.length || 0).fill(false))
+      }
 
-    setLoading(false)
-  }
-  fetchData()
-}, [raffleId])
+      const { data: raffle } = await supabase
+        .from("raffles")
+        .select("ends_at")
+        .eq("id", raffleId)
+        .single()
+      if (raffle?.ends_at) setEndsAt(raffle.ends_at)
+
+      setLoading(false)
+    }
+    fetchData()
+  }, [raffleId])
 
   useEffect(() => {
     const discordId = searchParams.get("discord_id")
@@ -69,21 +76,21 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
   }, [searchParams, requirements])
 
   useEffect(() => {
-  if (!endsAt) return
-  const timer = setInterval(() => {
-    const diff = new Date(endsAt).getTime() - Date.now()
-    if (diff <= 0) {
-      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
-      clearInterval(timer)
-      return
-    }
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-    setTimeLeft({ hours, minutes, seconds })
-  }, 1000)
-  return () => clearInterval(timer)
-}, [endsAt])
+    if (!endsAt) return
+    const timer = setInterval(() => {
+      const diff = new Date(endsAt).getTime() - Date.now()
+      if (diff <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+        clearInterval(timer)
+        return
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+      setTimeLeft({ hours, minutes, seconds })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [endsAt])
 
   const verifyDiscordRole = async (token: string, userId: string) => {
     if (!requirements) return
@@ -125,14 +132,15 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
     window.location.href = `https://discord.com/oauth2/authorize?${discordParams}`
   }
 
-  const allTasksDone = () => {
-    if (!requirements) return false
-    const xDone =
-      (!requirements.x_follow_account || xFollowDone) &&
-      (!requirements.x_like_post_url || xLikeDone) &&
-      (!requirements.x_retweet_post_url || xRetweetDone)
-    return discordVerified && xDone
+  const allXTasksDone = () => {
+    if (!requirements) return true
+    const allFollows = followsDone.every(Boolean)
+    const allLikes = likesDone.every(Boolean)
+    const allRetweets = retweetsDone.every(Boolean)
+    return allFollows && allLikes && allRetweets
   }
+
+  const allTasksDone = () => discordVerified && allXTasksDone()
 
   const handleSubmit = async () => {
     if (!wallet || !allTasksDone()) return
@@ -142,13 +150,19 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
       discord_verified: discordVerified,
       discord_user_id: discordUser?.id,
       discord_username: discordUser?.username,
-      x_follow_verified: xFollowDone,
-      x_like_verified: xLikeDone,
-      x_retweet_verified: xRetweetDone,
+      x_follow_verified: followsDone.every(Boolean),
+      x_like_verified: likesDone.every(Boolean),
+      x_retweet_verified: retweetsDone.every(Boolean),
       is_fully_verified: true,
     })
     setSubmitted(true)
   }
+
+  const hasXTasks = requirements && (
+    (requirements.x_follow_accounts?.length > 0) ||
+    (requirements.x_like_post_urls?.length > 0) ||
+    (requirements.x_retweet_post_urls?.length > 0)
+  )
 
   if (loading) {
     return (
@@ -167,6 +181,7 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
           <p className="text-white/60 mt-2">Complete all requirements below to enter.</p>
         </div>
 
+        {/* Timer */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
           <p className="text-sm text-white/50 mb-1">Time remaining</p>
           <div className="text-3xl font-mono font-bold text-purple-400">
@@ -174,6 +189,9 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
             {String(timeLeft.minutes).padStart(2, "0")}:
             {String(timeLeft.seconds).padStart(2, "0")}
           </div>
+          {timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0 && (
+            <p className="text-red-400 text-sm mt-2">This raffle has ended.</p>
+          )}
         </div>
 
         {/* Step 1: Discord */}
@@ -212,79 +230,91 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
         </div>
 
         {/* Step 2: X Tasks */}
-        {(requirements?.x_follow_account || requirements?.x_like_post_url || requirements?.x_retweet_post_url) && (
+        {hasXTasks && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                (!requirements.x_follow_account || xFollowDone) &&
-                (!requirements.x_like_post_url || xLikeDone) &&
-                (!requirements.x_retweet_post_url || xRetweetDone)
-                  ? "bg-green-500" : "bg-white/10"
-              }`}>
-                {(!requirements.x_follow_account || xFollowDone) &&
-                (!requirements.x_like_post_url || xLikeDone) &&
-                (!requirements.x_retweet_post_url || xRetweetDone) ? "✓" : "2"}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allXTasksDone() ? "bg-green-500" : "bg-white/10"}`}>
+                {allXTasksDone() ? "✓" : "2"}
               </div>
               <h2 className="font-semibold">X (Twitter) Tasks</h2>
             </div>
             <div className="space-y-3">
-              {requirements.x_follow_account && (
-                <div className="flex items-center justify-between">
+
+              {/* Follow tasks */}
+              {requirements?.x_follow_accounts?.map((account, i) => (
+                <div key={`follow-${i}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${xFollowDone ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                      {xFollowDone && <span className="text-xs">✓</span>}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${followsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                      {followsDone[i] && <span className="text-xs">✓</span>}
                     </div>
-                    <span className="text-sm text-white/70">Follow @{requirements.x_follow_account}</span>
+                    <span className="text-sm text-white/70">Follow @{account}</span>
                   </div>
-                  {!xFollowDone && (
+                  {!followsDone[i] && (
                     <button
                       onClick={() => {
-                        window.open(`https://x.com/${requirements!.x_follow_account}`, "_blank")
-                        setTimeout(() => setXFollowDone(true), 2000)
+                        window.open(`https://x.com/${account}`, "_blank")
+                        setTimeout(() => {
+                          const updated = [...followsDone]
+                          updated[i] = true
+                          setFollowsDone(updated)
+                        }, 2000)
                       }}
                       className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
                     >Follow</button>
                   )}
                 </div>
-              )}
-              {requirements.x_like_post_url && (
-                <div className="flex items-center justify-between">
+              ))}
+
+              {/* Like tasks */}
+              {requirements?.x_like_post_urls?.map((url, i) => (
+                <div key={`like-${i}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${xLikeDone ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                      {xLikeDone && <span className="text-xs">✓</span>}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${likesDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                      {likesDone[i] && <span className="text-xs">✓</span>}
                     </div>
-                    <span className="text-sm text-white/70">Like the post</span>
+                    <span className="text-sm text-white/70">Like post {requirements.x_like_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
                   </div>
-                  {!xLikeDone && (
+                  {!likesDone[i] && (
                     <button
                       onClick={() => {
-                        window.open(requirements!.x_like_post_url!, "_blank")
-                        setTimeout(() => setXLikeDone(true), 2000)
+                        window.open(url, "_blank")
+                        setTimeout(() => {
+                          const updated = [...likesDone]
+                          updated[i] = true
+                          setLikesDone(updated)
+                        }, 2000)
                       }}
                       className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
                     >Like</button>
                   )}
                 </div>
-              )}
-              {requirements.x_retweet_post_url && (
-                <div className="flex items-center justify-between">
+              ))}
+
+              {/* Retweet tasks */}
+              {requirements?.x_retweet_post_urls?.map((url, i) => (
+                <div key={`retweet-${i}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${xRetweetDone ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                      {xRetweetDone && <span className="text-xs">✓</span>}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${retweetsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                      {retweetsDone[i] && <span className="text-xs">✓</span>}
                     </div>
-                    <span className="text-sm text-white/70">Retweet the post</span>
+                    <span className="text-sm text-white/70">Retweet post {requirements.x_retweet_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
                   </div>
-                  {!xRetweetDone && (
+                  {!retweetsDone[i] && (
                     <button
                       onClick={() => {
-                        window.open(requirements!.x_retweet_post_url!, "_blank")
-                        setTimeout(() => setXRetweetDone(true), 2000)
+                        window.open(url, "_blank")
+                        setTimeout(() => {
+                          const updated = [...retweetsDone]
+                          updated[i] = true
+                          setRetweetsDone(updated)
+                        }, 2000)
                       }}
                       className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
                     >Retweet</button>
                   )}
                 </div>
-              )}
+              ))}
+
             </div>
           </div>
         )}
@@ -294,7 +324,7 @@ const [endsAt, setEndsAt] = useState<string | null>(null)
           <div className={`bg-white/5 border rounded-xl p-6 transition-opacity ${allTasksDone() ? "border-white/10 opacity-100" : "border-white/5 opacity-50 pointer-events-none"}`}>
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allTasksDone() ? "bg-purple-600" : "bg-white/10"}`}>
-                3
+                {hasXTasks ? "3" : "2"}
               </div>
               <h2 className="font-semibold">Submit Your Wallet</h2>
             </div>
