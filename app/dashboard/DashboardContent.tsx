@@ -490,7 +490,9 @@ export default function DashboardContent() {
       <div>
         <div className="flex items-center gap-2 mb-2">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-          <span className="font-semibold">{r.title}</span>
+          <a href={`/raffles/${r.id}`} className="font-semibold hover:text-purple-400 transition-colors">
+  {r.title}
+</a>
         </div>
         <div className="flex items-center gap-2 text-xs flex-wrap">
           <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
