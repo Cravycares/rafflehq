@@ -42,7 +42,25 @@ function getDefaultRequirements(): Requirements {
     endsAt: fmt(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)),
   }
 }
+function RaffleCountdown({ endsAt }: { endsAt: string }) {
+  const [timeLeft, setTimeLeft] = useState("")
 
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(endsAt).getTime() - Date.now()
+      if (diff <= 0) { setTimeLeft("Ended"); return }
+      const h = Math.floor(diff / (1000 * 60 * 60))
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const s = Math.floor((diff % (1000 * 60)) / 1000)
+      setTimeLeft(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`)
+    }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [endsAt])
+
+  return <span className="font-mono text-green-400">{timeLeft}</span>
+}
 export default function DashboardContent() {
   const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
@@ -483,41 +501,46 @@ export default function DashboardContent() {
         )}
 
         {tab === "active" && (
-          <div className="space-y-4">
-            {activeRaffles.map(r => {
-  const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
-  return (
-    <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-          <Link href={`/raffles/${r.id}`} className="font-semibold hover:text-purple-400 transition-colors">
-            {r.title}
-        </Link>
-        </div>
-        <div className="flex items-center gap-2 text-xs flex-wrap">
-          <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
-          <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
-          {r.ends_at && <span className="text-white/40">• Ends {new Date(r.ends_at).toLocaleDateString()}</span>}
-        </div>
-      </div>
-      {hasEnded ? (
-        <button onClick={() => handleDrawWinners(r)} className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-          Draw Winners
-        </button>
-      ) : (
-        <div className="text-xs text-white/40 border border-white/10 px-4 py-2 rounded-lg">
-          Raffle ends {new Date(r.ends_at).toLocaleString()}
-        </div>
-      )}
-    </div>
-  )
-})}
-            {activeRaffles.length === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">🎯</div><div className="text-sm">No active raffles</div></div>
-            )}
+  <div className="space-y-4">
+    {activeRaffles.map(r => {
+      const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
+      return (
+        <Link key={r.id} href={`/raffles/${r.id}`} className="block bg-white/[0.03] border border-white/[0.08] hover:border-purple-500/30 rounded-2xl p-6 transition-all">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="font-semibold">{r.title}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs flex-wrap">
+                <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
+                <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {hasEnded ? (
+                <button
+                  onClick={e => { e.preventDefault(); handleDrawWinners(r) }}
+                  className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Draw Winners
+                </button>
+              ) : (
+                <div className="text-right">
+                  <div className="text-xs text-white/40 mb-1">Time remaining</div>
+                  {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </Link>
+      )
+    })}
+    {activeRaffles.length === 0 && (
+      <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">🎯</div><div className="text-sm">No active raffles</div></div>
+    )}
+  </div>
+)}
 
         {tab === "ended" && (
           <div className="space-y-4">
