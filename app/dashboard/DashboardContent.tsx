@@ -505,7 +505,7 @@ export default function DashboardContent() {
     {activeRaffles.map(r => {
       const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
       return (
-        <Link key={r.id} href={`/raffles/${r.id}`} className="block bg-white/[0.03] border border-white/[0.08] hover:border-purple-500/30 rounded-2xl p-6 transition-all">
+        <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 transition-all">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -517,10 +517,10 @@ export default function DashboardContent() {
                 <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {hasEnded ? (
                 <button
-                  onClick={e => { e.preventDefault(); handleDrawWinners(r) }}
+                  onClick={() => handleDrawWinners(r)}
                   className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
                 >
                   Draw Winners
@@ -531,9 +531,15 @@ export default function DashboardContent() {
                   {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
                 </div>
               )}
+              <Link
+                href={`/raffles/${r.id}`}
+                className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                View →
+              </Link>
             </div>
           </div>
-        </Link>
+        </div>
       )
     })}
     {activeRaffles.length === 0 && (
