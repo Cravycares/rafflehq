@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link";
+import { useRouter } from "next/navigation"
 
 function FillRateBadge({ rate }: { rate: number }) {
   const color =
@@ -63,6 +64,7 @@ function RaffleCountdown({ endsAt }: { endsAt: string }) {
 }
 export default function DashboardContent() {
   const { data: session } = useSession()
+  const router = useRouter()
   const xHandle = (session as any)?.xHandle
 
   const [project, setProject] = useState(null)
@@ -531,12 +533,12 @@ export default function DashboardContent() {
                   {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
                 </div>
               )}
-              <Link
-                href={`/raffles/${r.id}`}
-                className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                View →
-              </Link>
+              <button
+  onClick={() => router.push(`/raffles/${r.id}`)}
+  className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors"
+>
+  View →
+</button>
             </div>
           </div>
         </div>
