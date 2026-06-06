@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useParams, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 
 type Requirements = {
@@ -49,6 +50,7 @@ function RafflePageInner() {
   const params = useParams()
   const searchParams = useSearchParams()
   const raffleId = params.id as string
+  const { data: session } = useSession()
 
   const [wallet, setWallet] = useState("")
   const [submitted, setSubmitted] = useState(false)
@@ -66,6 +68,10 @@ function RafflePageInner() {
   const [followsDone, setFollowsDone] = useState<boolean[]>([])
   const [likesDone, setLikesDone] = useState<boolean[]>([])
   const [retweetsDone, setRetweetsDone] = useState<boolean[]>([])
+  const [followsVerifying, setFollowsVerifying] = useState<boolean[]>([])
+  const [likesVerifying, setLikesVerifying] = useState<boolean[]>([])
+  const [retweetsVerifying, setRetweetsVerifying] = useState<boolean[]>([])
+  const [taskErrors, setTaskErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +86,9 @@ function RafflePageInner() {
         setFollowsDone(new Array(req.x_follow_accounts?.length || 0).fill(false))
         setLikesDone(new Array(req.x_like_post_urls?.length || 0).fill(false))
         setRetweetsDone(new Array(req.x_retweet_post_urls?.length || 0).fill(false))
+        setFollowsVerifying(new Array(req.x_follow_accounts?.length || 0).fill(false))
+        setLikesVerifying(new Array(req.x_like_post_urls?.length || 0).fill(false))
+        setRetweetsVerifying(new Array(req.x_retweet_post_urls?.length || 0).fill(false))
       }
 
       const { data: raffle } = await supabase
@@ -163,6 +172,93 @@ function RafflePageInner() {
     window.location.href = `https://discord.com/oauth2/authorize?${discordParams}`
   }
 
+  const handleFollow = async (account: string, i: number) => {
+    window.open(`https://x.com/${account}`, "_blank")
+    const verifying = [...followsVerifying]
+    verifying[i] = true
+    setFollowsVerifying(verifying)
+    setTaskErrors(prev => ({ ...prev, [`follow-${i}`]: "" }))
+    await new Promise(r => setTimeout(r, 4000))
+    try {
+      const res = await fetch("/api/twitter/verify-follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUsername: account }),
+      })
+      const data = await res.json()
+      const updated = [...followsDone]
+      updated[i] = data.verified
+      setFollowsDone(updated)
+      if (!data.verified) {
+        setTaskErrors(prev => ({ ...prev, [`follow-${i}`]: "Not detected yet — make sure you followed then try again" }))
+      }
+    } catch {
+      setTaskErrors(prev => ({ ...prev, [`follow-${i}`]: "Verification failed. Try again." }))
+    } finally {
+      const v = [...followsVerifying]
+      v[i] = false
+      setFollowsVerifying(v)
+    }
+  }
+
+  const handleLike = async (url: string, i: number) => {
+    window.open(url, "_blank")
+    const verifying = [...likesVerifying]
+    verifying[i] = true
+    setLikesVerifying(verifying)
+    setTaskErrors(prev => ({ ...prev, [`like-${i}`]: "" }))
+    await new Promise(r => setTimeout(r, 4000))
+    try {
+      const res = await fetch("/api/twitter/verify-like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tweetUrl: url }),
+      })
+      const data = await res.json()
+      const updated = [...likesDone]
+      updated[i] = data.verified
+      setLikesDone(updated)
+      if (!data.verified) {
+        setTaskErrors(prev => ({ ...prev, [`like-${i}`]: "Like not detected yet — make sure you liked the post then try again" }))
+      }
+    } catch {
+      setTaskErrors(prev => ({ ...prev, [`like-${i}`]: "Verification failed. Try again." }))
+    } finally {
+      const v = [...likesVerifying]
+      v[i] = false
+      setLikesVerifying(v)
+    }
+  }
+
+  const handleRetweet = async (url: string, i: number) => {
+    window.open(url, "_blank")
+    const verifying = [...retweetsVerifying]
+    verifying[i] = true
+    setRetweetsVerifying(verifying)
+    setTaskErrors(prev => ({ ...prev, [`retweet-${i}`]: "" }))
+    await new Promise(r => setTimeout(r, 4000))
+    try {
+      const res = await fetch("/api/twitter/verify-retweet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tweetUrl: url }),
+      })
+      const data = await res.json()
+      const updated = [...retweetsDone]
+      updated[i] = data.verified
+      setRetweetsDone(updated)
+      if (!data.verified) {
+        setTaskErrors(prev => ({ ...prev, [`retweet-${i}`]: "Retweet not detected yet — make sure you retweeted then try again" }))
+      }
+    } catch {
+      setTaskErrors(prev => ({ ...prev, [`retweet-${i}`]: "Verification failed. Try again." }))
+    } finally {
+      const v = [...retweetsVerifying]
+      v[i] = false
+      setRetweetsVerifying(v)
+    }
+  }
+
   const allXTasksDone = () => {
     if (!requirements) return true
     return followsDone.every(Boolean) && likesDone.every(Boolean) && retweetsDone.every(Boolean)
@@ -232,6 +328,7 @@ function RafflePageInner() {
 
         {raffleStarted && !raffleEnded && (
           <>
+            {/* Step 1: Discord */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -263,6 +360,7 @@ function RafflePageInner() {
               )}
             </div>
 
+            {/* Step 2: X Tasks */}
             {hasXTasks && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
                 <div className="flex items-center gap-3 mb-4">
@@ -271,77 +369,88 @@ function RafflePageInner() {
                   </div>
                   <h2 className="font-semibold">X (Twitter) Tasks</h2>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
+
                   {requirements?.x_follow_accounts?.map((account, i) => (
-                    <div key={`follow-${i}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${followsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                          {followsDone[i] && <span className="text-xs">✓</span>}
+                    <div key={`follow-${i}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${followsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                            {followsDone[i] && <span className="text-xs">✓</span>}
+                          </div>
+                          <span className="text-sm text-white/70">Follow @{account}</span>
                         </div>
-                        <span className="text-sm text-white/70">Follow @{account}</span>
+                        {!followsDone[i] && (
+                          <button
+                            onClick={() => handleFollow(account, i)}
+                            disabled={followsVerifying[i]}
+                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            {followsVerifying[i] ? "Checking..." : "Follow"}
+                          </button>
+                        )}
                       </div>
-                      {!followsDone[i] && (
-                        <button onClick={() => {
-                          window.open(`https://x.com/${account}`, "_blank")
-                          setTimeout(() => {
-                            const updated = [...followsDone]
-                            updated[i] = true
-                            setFollowsDone(updated)
-                          }, 2000)
-                        }} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
-                          Follow
-                        </button>
+                      {taskErrors[`follow-${i}`] && (
+                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`follow-${i}`]}</p>
                       )}
                     </div>
                   ))}
+
                   {requirements?.x_like_post_urls?.map((url, i) => (
-                    <div key={`like-${i}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${likesDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                          {likesDone[i] && <span className="text-xs">✓</span>}
+                    <div key={`like-${i}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${likesDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                            {likesDone[i] && <span className="text-xs">✓</span>}
+                          </div>
+                          <span className="text-sm text-white/70">Like post {requirements.x_like_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
                         </div>
-                        <span className="text-sm text-white/70">Like post {requirements.x_like_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
+                        {!likesDone[i] && (
+                          <button
+                            onClick={() => handleLike(url, i)}
+                            disabled={likesVerifying[i]}
+                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            {likesVerifying[i] ? "Checking..." : "Like"}
+                          </button>
+                        )}
                       </div>
-                      {!likesDone[i] && (
-                        <button onClick={() => {
-                          window.open(url, "_blank")
-                          setTimeout(() => {
-                            const updated = [...likesDone]
-                            updated[i] = true
-                            setLikesDone(updated)
-                          }, 2000)
-                        }} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
-                          Like
-                        </button>
+                      {taskErrors[`like-${i}`] && (
+                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`like-${i}`]}</p>
                       )}
                     </div>
                   ))}
+
                   {requirements?.x_retweet_post_urls?.map((url, i) => (
-                    <div key={`retweet-${i}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${retweetsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                          {retweetsDone[i] && <span className="text-xs">✓</span>}
+                    <div key={`retweet-${i}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${retweetsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                            {retweetsDone[i] && <span className="text-xs">✓</span>}
+                          </div>
+                          <span className="text-sm text-white/70">Retweet post {requirements.x_retweet_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
                         </div>
-                        <span className="text-sm text-white/70">Retweet post {requirements.x_retweet_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
+                        {!retweetsDone[i] && (
+                          <button
+                            onClick={() => handleRetweet(url, i)}
+                            disabled={retweetsVerifying[i]}
+                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            {retweetsVerifying[i] ? "Checking..." : "Retweet"}
+                          </button>
+                        )}
                       </div>
-                      {!retweetsDone[i] && (
-                        <button onClick={() => {
-                          window.open(url, "_blank")
-                          setTimeout(() => {
-                            const updated = [...retweetsDone]
-                            updated[i] = true
-                            setRetweetsDone(updated)
-                          }, 2000)
-                        }} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
-                          Retweet
-                        </button>
+                      {taskErrors[`retweet-${i}`] && (
+                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`retweet-${i}`]}</p>
                       )}
                     </div>
                   ))}
+
                 </div>
               </div>
             )}
 
+            {/* Step 3: Wallet */}
             {!submitted ? (
               <div className={`bg-white/5 border rounded-xl p-6 transition-opacity ${allTasksDone() ? "border-white/10 opacity-100" : "border-white/5 opacity-50 pointer-events-none"}`}>
                 <div className="flex items-center gap-3 mb-4">
