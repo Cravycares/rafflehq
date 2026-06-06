@@ -57,6 +57,7 @@ function RafflePageInner() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
   const [endsAt, setEndsAt] = useState<string | null>(null)
   const [startsAt, setStartsAt] = useState<string | null>(null)
+  const [raffleName, setRaffleName] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<Requirements | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -93,11 +94,12 @@ function RafflePageInner() {
 
       const { data: raffle } = await supabase
         .from("raffles")
-        .select("ends_at, starts_at")
+        .select("ends_at, starts_at, title")
         .eq("id", raffleId)
         .single()
       if (raffle?.ends_at) setEndsAt(raffle.ends_at)
       if (raffle?.starts_at) setStartsAt(raffle.starts_at)
+      if (raffle?.title) setRaffleName(raffle.title)
 
       setLoading(false)
     }
@@ -304,7 +306,7 @@ function RafflePageInner() {
       <div className="max-w-xl mx-auto">
         <div className="mb-8">
           <span className="text-purple-400 text-sm font-medium">LIVE RAFFLE</span>
-          <h1 className="text-3xl font-bold mt-2">Raffle #{raffleId.slice(0, 8)}...</h1>
+          <h1 className="text-3xl font-bold mt-2">{raffleName || `Raffle #${raffleId.slice(0, 8)}...`}</h1>
           <p className="text-white/60 mt-2">Complete all requirements below to enter.</p>
         </div>
 
@@ -328,151 +330,156 @@ function RafflePageInner() {
 
         {raffleStarted && !raffleEnded && (
           <>
-            {/* Step 1: Discord */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${discordVerified ? "bg-green-500" : "bg-white/10"}`}>
-                    {discordVerified ? "✓" : "1"}
-                  </div>
-                  <div>
-                    <h2 className="font-semibold">Discord Verification</h2>
-                    {requirements?.discord_server_name && (
-                      <p className="text-xs text-white/50">
-                        Requires <span className="text-purple-400">{requirements.discord_role_name}</span> role in {requirements.discord_server_name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {discordVerified && <span className="text-green-400 text-sm">Verified ✓</span>}
-              </div>
-              {!discordVerified && (
-                <>
-                  <button onClick={connectDiscord} disabled={discordVerifying}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 transition-colors text-white font-medium py-3 rounded-lg">
-                    {discordVerifying ? "Verifying..." : "Connect Discord"}
-                  </button>
-                  {discordError && <p className="text-red-400 text-sm mt-2">{discordError}</p>}
-                </>
-              )}
-              {discordVerified && discordUser && (
-                <p className="text-sm text-white/50">Connected as <span className="text-white">{discordUser.username}</span></p>
-              )}
-            </div>
-
-            {/* Step 2: X Tasks */}
-            {hasXTasks && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allXTasksDone() ? "bg-green-500" : "bg-white/10"}`}>
-                    {allXTasksDone() ? "✓" : "2"}
-                  </div>
-                  <h2 className="font-semibold">X (Twitter) Tasks</h2>
-                </div>
-                <div className="space-y-4">
-
-                  {requirements?.x_follow_accounts?.map((account, i) => (
-                    <div key={`follow-${i}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${followsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                            {followsDone[i] && <span className="text-xs">✓</span>}
-                          </div>
-                          <span className="text-sm text-white/70">Follow @{account}</span>
-                        </div>
-                        {!followsDone[i] && (
-                          <button
-                            onClick={() => handleFollow(account, i)}
-                            disabled={followsVerifying[i]}
-                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            {followsVerifying[i] ? "Checking..." : "Follow"}
-                          </button>
-                        )}
-                      </div>
-                      {taskErrors[`follow-${i}`] && (
-                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`follow-${i}`]}</p>
-                      )}
-                    </div>
-                  ))}
-
-                  {requirements?.x_like_post_urls?.map((url, i) => (
-                    <div key={`like-${i}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${likesDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                            {likesDone[i] && <span className="text-xs">✓</span>}
-                          </div>
-                          <span className="text-sm text-white/70">Like post {requirements.x_like_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
-                        </div>
-                        {!likesDone[i] && (
-                          <button
-                            onClick={() => handleLike(url, i)}
-                            disabled={likesVerifying[i]}
-                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            {likesVerifying[i] ? "Checking..." : "Like"}
-                          </button>
-                        )}
-                      </div>
-                      {taskErrors[`like-${i}`] && (
-                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`like-${i}`]}</p>
-                      )}
-                    </div>
-                  ))}
-
-                  {requirements?.x_retweet_post_urls?.map((url, i) => (
-                    <div key={`retweet-${i}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${retweetsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
-                            {retweetsDone[i] && <span className="text-xs">✓</span>}
-                          </div>
-                          <span className="text-sm text-white/70">Retweet post {requirements.x_retweet_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
-                        </div>
-                        {!retweetsDone[i] && (
-                          <button
-                            onClick={() => handleRetweet(url, i)}
-                            disabled={retweetsVerifying[i]}
-                            className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            {retweetsVerifying[i] ? "Checking..." : "Retweet"}
-                          </button>
-                        )}
-                      </div>
-                      {taskErrors[`retweet-${i}`] && (
-                        <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`retweet-${i}`]}</p>
-                      )}
-                    </div>
-                  ))}
-
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Wallet */}
-            {!submitted ? (
-              <div className={`bg-white/5 border rounded-xl p-6 transition-opacity ${allTasksDone() ? "border-white/10 opacity-100" : "border-white/5 opacity-50 pointer-events-none"}`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allTasksDone() ? "bg-purple-600" : "bg-white/10"}`}>
-                    {hasXTasks ? "3" : "2"}
-                  </div>
-                  <h2 className="font-semibold">Submit Your Wallet</h2>
-                </div>
-                <input type="text" value={wallet} onChange={e => setWallet(e.target.value)}
-                  placeholder="0x... or SOL address"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 mb-4" />
-                <button onClick={handleSubmit} disabled={!wallet || !allTasksDone()}
-                  className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-medium py-3 rounded-lg">
-                  Enter Raffle
+            {!session ? (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4 text-center">
+                <div className="text-2xl mb-3">𝕏</div>
+                <h2 className="font-semibold mb-2">Sign in to Enter</h2>
+                <p className="text-sm text-white/50 mb-4">You need to sign in with X to verify your tasks and enter this raffle.</p>
+                <button
+                  onClick={() => window.location.href = `/api/auth/signin/twitter?callbackUrl=${encodeURIComponent(window.location.href)}`}
+                  className="w-full bg-white text-black font-semibold py-3 rounded-lg hover:bg-white/90 transition-colors"
+                >
+                  Sign in with X
                 </button>
               </div>
             ) : (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 text-center">
-                <div className="text-3xl mb-2">🎉</div>
-                <h2 className="font-semibold text-green-400">You&apos;re entered!</h2>
-                <p className="text-white/60 text-sm mt-1">{wallet}</p>
-              </div>
+              <>
+                {/* Step 1: Discord */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${discordVerified ? "bg-green-500" : "bg-white/10"}`}>
+                        {discordVerified ? "✓" : "1"}
+                      </div>
+                      <div>
+                        <h2 className="font-semibold">Discord Verification</h2>
+                        {requirements?.discord_server_name && (
+                          <p className="text-xs text-white/50">
+                            Requires <span className="text-purple-400">{requirements.discord_role_name}</span> role in {requirements.discord_server_name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {discordVerified && <span className="text-green-400 text-sm">Verified ✓</span>}
+                  </div>
+                  {!discordVerified && (
+                    <>
+                      <button onClick={connectDiscord} disabled={discordVerifying}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 transition-colors text-white font-medium py-3 rounded-lg">
+                        {discordVerifying ? "Verifying..." : "Connect Discord"}
+                      </button>
+                      {discordError && <p className="text-red-400 text-sm mt-2">{discordError}</p>}
+                    </>
+                  )}
+                  {discordVerified && discordUser && (
+                    <p className="text-sm text-white/50">Connected as <span className="text-white">{discordUser.username}</span></p>
+                  )}
+                </div>
+
+                {/* Step 2: X Tasks */}
+                {hasXTasks && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allXTasksDone() ? "bg-green-500" : "bg-white/10"}`}>
+                        {allXTasksDone() ? "✓" : "2"}
+                      </div>
+                      <h2 className="font-semibold">X (Twitter) Tasks</h2>
+                    </div>
+                    <div className="space-y-4">
+                      {requirements?.x_follow_accounts?.map((account, i) => (
+                        <div key={`follow-${i}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${followsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                                {followsDone[i] && <span className="text-xs">✓</span>}
+                              </div>
+                              <span className="text-sm text-white/70">Follow @{account}</span>
+                            </div>
+                            {!followsDone[i] && (
+                              <button onClick={() => handleFollow(account, i)} disabled={followsVerifying[i]}
+                                className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
+                                {followsVerifying[i] ? "Checking..." : "Follow"}
+                              </button>
+                            )}
+                          </div>
+                          {taskErrors[`follow-${i}`] && (
+                            <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`follow-${i}`]}</p>
+                          )}
+                        </div>
+                      ))}
+
+                      {requirements?.x_like_post_urls?.map((url, i) => (
+                        <div key={`like-${i}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${likesDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                                {likesDone[i] && <span className="text-xs">✓</span>}
+                              </div>
+                              <span className="text-sm text-white/70">Like post {requirements.x_like_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
+                            </div>
+                            {!likesDone[i] && (
+                              <button onClick={() => handleLike(url, i)} disabled={likesVerifying[i]}
+                                className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
+                                {likesVerifying[i] ? "Checking..." : "Like"}
+                              </button>
+                            )}
+                          </div>
+                          {taskErrors[`like-${i}`] && (
+                            <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`like-${i}`]}</p>
+                          )}
+                        </div>
+                      ))}
+
+                      {requirements?.x_retweet_post_urls?.map((url, i) => (
+                        <div key={`retweet-${i}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${retweetsDone[i] ? "bg-green-500 border-green-500" : "border-white/20"}`}>
+                                {retweetsDone[i] && <span className="text-xs">✓</span>}
+                              </div>
+                              <span className="text-sm text-white/70">Retweet post {requirements.x_retweet_post_urls.length > 1 ? `#${i + 1}` : ""}</span>
+                            </div>
+                            {!retweetsDone[i] && (
+                              <button onClick={() => handleRetweet(url, i)} disabled={retweetsVerifying[i]}
+                                className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
+                                {retweetsVerifying[i] ? "Checking..." : "Retweet"}
+                              </button>
+                            )}
+                          </div>
+                          {taskErrors[`retweet-${i}`] && (
+                            <p className="text-yellow-400 text-xs mt-1 ml-8">{taskErrors[`retweet-${i}`]}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Wallet */}
+                {!submitted ? (
+                  <div className={`bg-white/5 border rounded-xl p-6 transition-opacity ${allTasksDone() ? "border-white/10 opacity-100" : "border-white/5 opacity-50 pointer-events-none"}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${allTasksDone() ? "bg-purple-600" : "bg-white/10"}`}>
+                        {hasXTasks ? "3" : "2"}
+                      </div>
+                      <h2 className="font-semibold">Submit Your Wallet</h2>
+                    </div>
+                    <input type="text" value={wallet} onChange={e => setWallet(e.target.value)}
+                      placeholder="0x... or SOL address"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 mb-4" />
+                    <button onClick={handleSubmit} disabled={!wallet || !allTasksDone()}
+                      className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-medium py-3 rounded-lg">
+                      Enter Raffle
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 text-center">
+                    <div className="text-3xl mb-2">🎉</div>
+                    <h2 className="font-semibold text-green-400">You&apos;re entered!</h2>
+                    <p className="text-white/60 text-sm mt-1">{wallet}</p>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
