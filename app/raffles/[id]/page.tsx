@@ -50,7 +50,7 @@ function RafflePageInner() {
   const params = useParams()
   const searchParams = useSearchParams()
   const raffleId = params.id as string
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
 
   const [wallet, setWallet] = useState("")
   const [submitted, setSubmitted] = useState(false)
@@ -330,20 +330,24 @@ function RafflePageInner() {
 
         {raffleStarted && !raffleEnded && (
           <>
-            {!session ? (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4 text-center">
-                <div className="text-2xl mb-3">𝕏</div>
-                <h2 className="font-semibold mb-2">Sign in to Enter</h2>
-                <p className="text-sm text-white/50 mb-4">You need to sign in with X to verify your tasks and enter this raffle.</p>
-                <button
-                  onClick={() => window.location.href = `/api/auth/signin/twitter?callbackUrl=${encodeURIComponent(window.location.href)}`}
-                  className="w-full bg-white text-black font-semibold py-3 rounded-lg hover:bg-white/90 transition-colors"
-                >
-                  Sign in with X
-                </button>
-              </div>
-            ) : (
-              <>
+            {status === "loading" ? (
+  <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4 text-center">
+    <p className="text-white/50 text-sm">Checking authentication...</p>
+  </div>
+) : status === "unauthenticated" ? (
+  <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4 text-center">
+    <div className="text-2xl mb-3">𝕏</div>
+    <h2 className="font-semibold mb-2">Sign in to Enter</h2>
+    <p className="text-sm text-white/50 mb-4">You need to sign in with X to verify your tasks and enter this raffle.</p>
+    <button
+      onClick={() => window.location.href = `/api/auth/signin/twitter?callbackUrl=${encodeURIComponent(window.location.href)}`}
+      className="w-full bg-white text-black font-semibold py-3 rounded-lg hover:bg-white/90 transition-colors"
+    >
+      Sign in with X
+    </button>
+  </div>
+) : (
+  <>
                 {/* Step 1: Discord */}
                 <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-4">
                   <div className="flex items-center justify-between mb-4">
