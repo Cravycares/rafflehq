@@ -176,23 +176,31 @@ export default function DashboardContent() {
   }, [tab, myCollabs])
 
   const submitTeamWallet = async (raffleId: string, projectId: string) => {
-    const wallet = newWallets[raffleId]?.trim()
-    if (!wallet) return
-    setSubmittingWallet(prev => ({ ...prev, [raffleId]: true }))
-    await supabase.from("team_wallets").insert({
-      raffle_id: raffleId,
-      project_b_id: projectId,
-      wallet_address: wallet,
-    })
-    const { data: tw } = await supabase
-      .from("team_wallets")
-      .select("*")
-      .eq("raffle_id", raffleId)
-      .eq("project_b_id", projectId)
-    setTeamWallets(prev => ({ ...prev, [raffleId]: tw || [] }))
-    setNewWallets(prev => ({ ...prev, [raffleId]: "" }))
+  const wallet = newWallets[raffleId]?.trim()
+  if (!wallet || !projectId) return
+  setSubmittingWallet(prev => ({ ...prev, [raffleId]: true }))
+  
+  const { error } = await supabase.from("team_wallets").insert({
+    raffle_id: raffleId,
+    project_b_id: projectId,
+    wallet_address: wallet,
+  })
+  
+  if (error) {
+    console.error("Team wallet insert error:", error)
     setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
+    return
   }
+
+  const { data: tw } = await supabase
+    .from("team_wallets")
+    .select("*")
+    .eq("raffle_id", raffleId)
+    .eq("project_b_id", projectId)
+  setTeamWallets(prev => ({ ...prev, [raffleId]: tw || [] }))
+  setNewWallets(prev => ({ ...prev, [raffleId]: "" }))
+  setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
+}
 
   const copyRaffleLink = (raffleId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/raffles/${raffleId}`)
