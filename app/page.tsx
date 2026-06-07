@@ -360,7 +360,7 @@ function FloatingNFTs() {
               top: `${nft.y}%`,
               width: nft.size,
               height: nft.size * 1.25,
-              opacity: 0.18,
+              opacity: 0.25,
               transform: `rotate(${nft.rotate}deg)`,
               animation: `${anims[i % 3]} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
             }}
@@ -381,8 +381,8 @@ function FloatingNFTs() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: nft.size * 0.28,
-                color: "rgba(255,255,255,0.6)",
+                fontSize: nft.size * 0.38,
+                color: "rgba(255,255,255,0.8)",
               }}>
                 {symbols[i % symbols.length]}
               </div>
