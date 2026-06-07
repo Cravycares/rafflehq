@@ -317,8 +317,28 @@ function FloatingNFTs() {
     { x: 60, y: 12, size: 48, delay: 1.5, duration: 24, rotate: -12 },
   ]
 
+  const css = `
+    @keyframes floatA {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-24px); }
+    }
+    @keyframes floatB {
+      0%, 100% { transform: translateY(0px); }
+      33% { transform: translateY(-18px); }
+      66% { transform: translateY(10px); }
+    }
+    @keyframes floatC {
+      0%, 100% { transform: translateY(0px); }
+      25% { transform: translateY(14px); }
+      75% { transform: translateY(-20px); }
+    }
+  `
+
+  const anims = ["floatA", "floatB", "floatC"]
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <style dangerouslySetInnerHTML={{ __html: css }} />
       {nfts.map((nft, i) => (
         <div
           key={i}
@@ -328,44 +348,28 @@ function FloatingNFTs() {
             top: `${nft.y}%`,
             width: nft.size,
             height: nft.size,
-            opacity: 0.06,
-            animation: `float${i % 3} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
+            opacity: 0.15,
             transform: `rotate(${nft.rotate}deg)`,
+            animation: `${anims[i % 3]} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
           }}
         >
           <div style={{
             width: "100%",
             height: "100%",
             borderRadius: 12,
-            border: "1px solid #7c3aed",
-            background: "linear-gradient(135deg, #7c3aed22, #a78bfa11)",
+            border: "1.5px solid #8b5cf6",
+            background: "linear-gradient(135deg, #7c3aed33, #a78bfa22)",
             display: "flex",
             flexDirection: "column",
             padding: 8,
             gap: 4,
           }}>
-            <div style={{ flex: 1, borderRadius: 6, background: "#7c3aed22" }}/>
-            <div style={{ height: 8, borderRadius: 4, background: "#7c3aed33", width: "70%" }}/>
-            <div style={{ height: 6, borderRadius: 4, background: "#7c3aed22", width: "45%" }}/>
+            <div style={{ flex: 1, borderRadius: 6, background: "#7c3aed44" }} />
+            <div style={{ height: 8, borderRadius: 4, background: "#8b5cf655", width: "70%" }} />
+            <div style={{ height: 6, borderRadius: 4, background: "#7c3aed33", width: "45%" }} />
           </div>
         </div>
       ))}
-      <style>{`
-        @keyframes float0 {
-          0%, 100% { transform: translateY(0px) rotate(var(--r, 12deg)); }
-          50% { transform: translateY(-24px) rotate(var(--r, 12deg)); }
-        }
-        @keyframes float1 {
-          0%, 100% { transform: translateY(0px) rotate(var(--r, -8deg)); }
-          33% { transform: translateY(-18px) rotate(var(--r, -8deg)); }
-          66% { transform: translateY(10px) rotate(var(--r, -8deg)); }
-        }
-        @keyframes float2 {
-          0%, 100% { transform: translateY(0px) rotate(var(--r, 6deg)); }
-          25% { transform: translateY(14px) rotate(var(--r, 6deg)); }
-          75% { transform: translateY(-20px) rotate(var(--r, 6deg)); }
-        }
-      `}</style>
     </div>
   )
 }
