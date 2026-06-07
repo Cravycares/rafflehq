@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
+import { Logo } from "@/components/Logo"
 
 function FillRateBadge({ rate }: { rate: number }) {
   const color =
@@ -398,10 +399,7 @@ export default function DashboardContent() {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-40 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
-            <span className="font-semibold text-lg">RaffleHQ</span>
-          </a>
+          <a href="/"><Logo size={36} /></a>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
               <span className="w-2 h-2 bg-purple-400 rounded-full"></span>

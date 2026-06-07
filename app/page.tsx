@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import { createPortal } from 'react-dom'
+import { Logo } from "@/components/Logo"
 
 const STEPS = [
   { number: "01", role: "Project A", color: "purple", title: "List Your Spots", desc: "Connect your wallet and verify your official X account. Set how many whitelist spots you want to share with partner projects.", icon: "🏛️" },
@@ -311,10 +312,7 @@ export default function Home() {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
-            <span className="font-semibold text-lg">RaffleHQ</span>
-          </div>
+          <Logo size={36} />
           <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
             <a href="#how" className="hover:text-white transition-colors">How it works</a>
             <a href="#raffles" className="hover:text-white transition-colors">Live Raffles</a>
