@@ -317,6 +317,16 @@ function FloatingNFTs() {
     { x: 60, y: 12, size: 48, delay: 1.5, duration: 24, rotate: -12 },
   ]
 
+  const gradients = [
+    ["#4c1d95", "#7c3aed"],
+    ["#1e1b4b", "#4338ca"],
+    ["#2e1065", "#6d28d9"],
+    ["#1a1a2e", "#312e81"],
+    ["#3b0764", "#5b21b6"],
+  ]
+
+  const symbols = ["◈", "⬡", "◆", "⬢", "◇", "⬟", "◉", "⬠"]
+
   const css = `
     @keyframes floatA {
       0%, 100% { transform: translateY(0px); }
@@ -339,37 +349,65 @@ function FloatingNFTs() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      {nfts.map((nft, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            left: `${nft.x}%`,
-            top: `${nft.y}%`,
-            width: nft.size,
-            height: nft.size,
-            opacity: 0.15,
-            transform: `rotate(${nft.rotate}deg)`,
-            animation: `${anims[i % 3]} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
-          }}
-        >
-          <div style={{
-            width: "100%",
-            height: "100%",
-            borderRadius: 12,
-            border: "1.5px solid #8b5cf6",
-            background: "linear-gradient(135deg, #7c3aed33, #a78bfa22)",
-            display: "flex",
-            flexDirection: "column",
-            padding: 8,
-            gap: 4,
-          }}>
-            <div style={{ flex: 1, borderRadius: 6, background: "#7c3aed44" }} />
-            <div style={{ height: 8, borderRadius: 4, background: "#8b5cf655", width: "70%" }} />
-            <div style={{ height: 6, borderRadius: 4, background: "#7c3aed33", width: "45%" }} />
+      {nfts.map((nft, i) => {
+        const [gradFrom, gradTo] = gradients[i % gradients.length]
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: `${nft.x}%`,
+              top: `${nft.y}%`,
+              width: nft.size,
+              height: nft.size * 1.25,
+              opacity: 0.18,
+              transform: `rotate(${nft.rotate}deg)`,
+              animation: `${anims[i % 3]} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
+            }}
+          >
+            <div style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 12,
+              border: "1.5px solid #8b5cf6",
+              background: "#0e0514",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                flex: 1,
+                background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: nft.size * 0.28,
+                color: "rgba(255,255,255,0.6)",
+              }}>
+                {symbols[i % symbols.length]}
+              </div>
+              <div style={{
+                padding: "6px 8px",
+                borderTop: "1px solid #7c3aed44",
+              }}>
+                <div style={{
+                  height: 7,
+                  borderRadius: 4,
+                  background: "#8b5cf666",
+                  width: "75%",
+                  marginBottom: 4,
+                }} />
+                <div style={{
+                  height: 6,
+                  borderRadius: 4,
+                  background: "#a78bfa44",
+                  width: "45%",
+                }} />
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
