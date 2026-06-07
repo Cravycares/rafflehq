@@ -305,9 +305,75 @@ function LiveRafflesSection() {
   )
 }
 
+function FloatingNFTs() {
+  const nfts = [
+    { x: 5, y: 15, size: 80, delay: 0, duration: 18, rotate: 12 },
+    { x: 85, y: 8, size: 65, delay: 2, duration: 22, rotate: -8 },
+    { x: 15, y: 65, size: 55, delay: 4, duration: 20, rotate: 6 },
+    { x: 78, y: 55, size: 70, delay: 1, duration: 25, rotate: -15 },
+    { x: 45, y: 80, size: 50, delay: 3, duration: 19, rotate: 10 },
+    { x: 92, y: 35, size: 45, delay: 5, duration: 23, rotate: -5 },
+    { x: 3, y: 42, size: 60, delay: 2.5, duration: 21, rotate: 18 },
+    { x: 60, y: 12, size: 48, delay: 1.5, duration: 24, rotate: -12 },
+  ]
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {nfts.map((nft, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${nft.x}%`,
+            top: `${nft.y}%`,
+            width: nft.size,
+            height: nft.size,
+            opacity: 0.06,
+            animation: `float${i % 3} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
+            transform: `rotate(${nft.rotate}deg)`,
+          }}
+        >
+          <div style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 12,
+            border: "1px solid #7c3aed",
+            background: "linear-gradient(135deg, #7c3aed22, #a78bfa11)",
+            display: "flex",
+            flexDirection: "column",
+            padding: 8,
+            gap: 4,
+          }}>
+            <div style={{ flex: 1, borderRadius: 6, background: "#7c3aed22" }}/>
+            <div style={{ height: 8, borderRadius: 4, background: "#7c3aed33", width: "70%" }}/>
+            <div style={{ height: 6, borderRadius: 4, background: "#7c3aed22", width: "45%" }}/>
+          </div>
+        </div>
+      ))}
+      <style>{`
+        @keyframes float0 {
+          0%, 100% { transform: translateY(0px) rotate(var(--r, 12deg)); }
+          50% { transform: translateY(-24px) rotate(var(--r, 12deg)); }
+        }
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0px) rotate(var(--r, -8deg)); }
+          33% { transform: translateY(-18px) rotate(var(--r, -8deg)); }
+          66% { transform: translateY(10px) rotate(var(--r, -8deg)); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0px) rotate(var(--r, 6deg)); }
+          25% { transform: translateY(14px) rotate(var(--r, 6deg)); }
+          75% { transform: translateY(-20px) rotate(var(--r, 6deg)); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
+      <FloatingNFTs />
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
