@@ -325,7 +325,9 @@ function FloatingNFTs() {
     ["#3b0764", "#5b21b6"],
   ]
 
-  const symbols = ["◈", "⬡", "◆", "⬢", "◇", "⬟", "◉", "⬠"]
+  const names = ["CryptoApe #4821", "PixelPunk #391", "DeGod #1204", "Azuki #8832", "BAYC #7713", "CloneX #441", "Moonbird #92", "Doodle #3301"]
+  const prices = ["2.4 ETH", "1.8 ETH", "4.2 ETH", "3.1 ETH", "8.5 ETH", "2.9 ETH", "5.0 ETH", "1.5 ETH"]
+  const anims = ["floatA", "floatB", "floatC"]
 
   const css = `
     @keyframes floatA {
@@ -344,8 +346,6 @@ function FloatingNFTs() {
     }
   `
 
-  const anims = ["floatA", "floatB", "floatC"]
-
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       <style dangerouslySetInnerHTML={{ __html: css }} />
@@ -356,13 +356,13 @@ function FloatingNFTs() {
             key={i}
             style={{
               position: "absolute",
-              left: `${nft.x}%`,
-              top: `${nft.y}%`,
+              left: nft.x + "%",
+              top: nft.y + "%",
               width: nft.size,
-              height: nft.size * 1.25,
+              height: nft.size * 1.35,
               opacity: 0.25,
-              transform: `rotate(${nft.rotate}deg)`,
-              animation: `${anims[i % 3]} ${nft.duration}s ease-in-out ${nft.delay}s infinite`,
+              transform: "rotate(" + nft.rotate + "deg)",
+              animation: anims[i % 3] + " " + nft.duration + "s ease-in-out " + nft.delay + "s infinite",
             }}
           >
             <div style={{
@@ -377,32 +377,41 @@ function FloatingNFTs() {
             }}>
               <div style={{
                 flex: 1,
-                background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+                background: "linear-gradient(135deg, " + gradFrom + ", " + gradTo + ")",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: nft.size * 0.38,
-                color: "rgba(255,255,255,0.8)",
+                overflow: "hidden",
               }}>
-                {symbols[i % symbols.length]}
+                <img
+                  src={"https://api.dicebear.com/9.x/pixel-art/svg?seed=nft" + i}
+                  alt="nft"
+                  style={{ width: "85%", height: "85%", objectFit: "contain" }}
+                />
               </div>
               <div style={{
-                padding: "6px 8px",
+                padding: "5px 7px",
                 borderTop: "1px solid #7c3aed44",
+                background: "#0a0118",
               }}>
                 <div style={{
-                  height: 7,
-                  borderRadius: 4,
-                  background: "#8b5cf666",
-                  width: "75%",
-                  marginBottom: 4,
-                }} />
+                  fontSize: nft.size * 0.11,
+                  color: "#c4b5fd",
+                  fontWeight: 600,
+                  marginBottom: 2,
+                  fontFamily: "sans-serif",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                }}>
+                  {names[i % names.length]}
+                </div>
                 <div style={{
-                  height: 6,
-                  borderRadius: 4,
-                  background: "#a78bfa44",
-                  width: "45%",
-                }} />
+                  fontSize: nft.size * 0.1,
+                  color: "#8b5cf6",
+                  fontFamily: "sans-serif",
+                }}>
+                  {prices[i % prices.length]}
+                </div>
               </div>
             </div>
           </div>
