@@ -272,20 +272,37 @@ function RafflePageInner() {
   const raffleEnded = endsAt && new Date(endsAt) <= new Date()
 
   const handleSubmit = async () => {
-    if (!wallet || !allTasksDone()) return
-    await supabase.from("raffle_entries").insert({
-      raffle_id: raffleId,
-      wallet_address: wallet,
-      discord_verified: discordVerified,
-      discord_user_id: discordUser?.id,
-      discord_username: discordUser?.username,
-      x_follow_verified: followsDone.every(Boolean),
-      x_like_verified: likesDone.every(Boolean),
-      x_retweet_verified: retweetsDone.every(Boolean),
-      is_fully_verified: true,
-    })
-    setSubmitted(true)
+  if (!wallet || !allTasksDone()) return
+
+  const xHandle = (session as any)?.xHandle
+
+  // Check for duplicate entry
+  const { data: existing } = await supabase
+    .from("raffle_entries")
+    .select("id")
+    .eq("raffle_id", raffleId)
+    .eq("x_handle", xHandle)
+    .maybeSingle()
+
+  if (existing) {
+    alert("You have already entered this raffle with this X account.")
+    return
   }
+
+  await supabase.from("raffle_entries").insert({
+    raffle_id: raffleId,
+    wallet_address: wallet,
+    discord_verified: discordVerified,
+    discord_user_id: discordUser?.id,
+    discord_username: discordUser?.username,
+    x_handle: xHandle,
+    x_follow_verified: followsDone.every(Boolean),
+    x_like_verified: likesDone.every(Boolean),
+    x_retweet_verified: retweetsDone.every(Boolean),
+    is_fully_verified: true,
+  })
+  setSubmitted(true)
+}
 
   const hasXTasks = requirements && (
     (requirements.x_follow_accounts?.length > 0) ||

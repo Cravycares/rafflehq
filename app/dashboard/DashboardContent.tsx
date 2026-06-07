@@ -606,10 +606,12 @@ export default function DashboardContent() {
                           {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
                         </div>
                       )}
-                      <button onClick={() => window.location.href = `/raffles/${r.id}`}
-                        className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors">
-                        View →
-                      </button>
+                      <button
+  onClick={() => { window.location.href = `/raffles/${r.id}` }}
+  className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors"
+>
+  View →
+</button>
                     </div>
                   </div>
                 </div>
