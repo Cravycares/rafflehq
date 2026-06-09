@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { Logo } from "@/components/Logo"
+import { signOut } from "next-auth/react"
 
 function FillRateBadge({ rate }: { rate: number }) {
   const color =
@@ -406,7 +407,12 @@ export default function DashboardContent() {
               <span className="text-sm text-white/70">{project?.x_handle || xHandle}</span>
               <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full">✓ verified</span>
             </div>
-            <button onClick={() => window.location.href = "/api/auth/signout?callbackUrl=/"} className="text-sm text-white/40 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">Sign out</button>
+            <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+                className="text-sm text-white/40 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                      Sign out
+            </button>
           </div>
         </div>
       </nav>
