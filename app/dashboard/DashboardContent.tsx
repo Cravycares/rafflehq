@@ -73,6 +73,7 @@ export default function DashboardContent() {
   const [endedRaffles, setEndedRaffles] = useState([])
   const [myCollabs, setMyCollabs] = useState([])
   const [entryCounts, setEntryCounts] = useState<Record<string, number>>({})
+  const [activeEntryCounts, setActiveEntryCounts] = useState<Record<string, number>>({})
   const [teamWallets, setTeamWallets] = useState<Record<string, any[]>>({})
   const [newWallets, setNewWallets] = useState<Record<string, string>>({})
   const [submittingWallet, setSubmittingWallet] = useState<Record<string, boolean>>({})
@@ -109,8 +110,20 @@ export default function DashboardContent() {
         .from("raffles")
         .select("*")
         .eq("project_a_id", proj.id)
-      setActiveRaffles((raffles || []).filter((r: any) => r.status === "live"))
+      const liveRaffles = (raffles || []).filter((r: any) => r.status === "live")
+      setActiveRaffles(liveRaffles)
       setEndedRaffles((raffles || []).filter((r: any) => r.status === "ended"))
+
+      // Live entry counts for Project A's active raffles
+      const activeCounts: Record<string, number> = {}
+      for (const r of liveRaffles) {
+        const { count } = await supabase
+          .from("raffle_entries")
+          .select("*", { count: "exact", head: true })
+          .eq("raffle_id", r.id)
+        activeCounts[r.id] = count || 0
+      }
+      setActiveEntryCounts(activeCounts)
 
       // Outgoing requests (Project B side)
       const { data: outgoing } = await supabase
@@ -158,7 +171,7 @@ export default function DashboardContent() {
     load()
   }, [xHandle])
 
-  // Refresh entry counts every 30 seconds
+  // Refresh entry counts every 30 seconds (My Collabs)
   useEffect(() => {
     if (tab !== "my_collabs") return
     const interval = setInterval(async () => {
@@ -176,6 +189,23 @@ export default function DashboardContent() {
     }, 30000)
     return () => clearInterval(interval)
   }, [tab, myCollabs])
+
+  // Refresh entry counts every 30 seconds (Active raffles - Project A)
+  useEffect(() => {
+    if (tab !== "active") return
+    const interval = setInterval(async () => {
+      const counts: Record<string, number> = {}
+      for (const r of activeRaffles) {
+        const { count } = await supabase
+          .from("raffle_entries")
+          .select("*", { count: "exact", head: true })
+          .eq("raffle_id", r.id)
+        counts[r.id] = count || 0
+      }
+      setActiveEntryCounts(counts)
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [tab, activeRaffles])
 
   const submitTeamWallet = async (raffleId: string, projectId: string) => {
   const wallet = newWallets[raffleId]?.trim()
@@ -593,9 +623,13 @@ export default function DashboardContent() {
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                         <span className="font-semibold">{r.title}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <div className="flex items-center gap-2 text-xs flex-wrap mb-1">
                         <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
                         <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-white/40">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                        <span className="text-white font-medium">{activeEntryCounts[r.id] ?? "—"}</span> live entries
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
