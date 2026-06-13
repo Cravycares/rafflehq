@@ -225,8 +225,8 @@ function ProjectsPageInner() {
             placeholder="Search by name or @handle..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/4 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50"
-          />
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50"
+              />
         </div>
         <div className="flex gap-2">
           {([
