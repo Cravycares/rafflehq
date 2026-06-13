@@ -333,6 +333,25 @@ export default function DashboardContent() {
       .eq("raffle_id", raffle.id)
       .eq("is_fully_verified", true)
 
+    // Update Project B's fill rate
+    if (raffle.project_b_id && raffle.community_spots > 0) {
+      const { data: projectB } = await supabase
+        .from("projects")
+        .select("total_community_spots_offered, total_entries_received")
+        .eq("id", raffle.project_b_id)
+        .maybeSingle()
+
+      const newOffered = (projectB?.total_community_spots_offered || 0) + raffle.community_spots
+      const newReceived = (projectB?.total_entries_received || 0) + (entries?.length || 0)
+      const newFillRate = newOffered > 0 ? Math.min(100, Math.round((newReceived / newOffered) * 100)) : 0
+
+      await supabase.from("projects").update({
+        total_community_spots_offered: newOffered,
+        total_entries_received: newReceived,
+        fill_rate: newFillRate,
+      }).eq("id", raffle.project_b_id)
+    }
+
     const { data: tw } = await supabase
       .from("team_wallets")
       .select("wallet_address")
