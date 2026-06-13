@@ -6,6 +6,7 @@ import { useSession, signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
+import Nav from "@/components/Nav"
 
 function ProjectsPageInner() {
   const { data: session } = useSession()
@@ -175,17 +176,7 @@ function ProjectsPageInner() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-bold">R</div>
-            <span className="font-semibold text-lg">RaffleHQ</span>
-          </Link>
-          <div className="text-sm text-white/50">
-            {(session as any)?.xHandle && `@${(session as any).xHandle}`}
-          </div>
-        </div>
-      </nav>
+      <Nav />
 
       <div className="pt-24 pb-16 px-6 max-w-7xl mx-auto">
         <div className="mb-8">
@@ -259,7 +250,6 @@ function ProjectsPageInner() {
                 <div className="px-6 pb-6 pt-3">
                   {requesting === project.id ? (
                     <div className="space-y-3">
-                      {/* Spot inputs */}
                       <input
                         type="number"
                         value={communityInput}
@@ -282,7 +272,6 @@ function ProjectsPageInner() {
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 resize-none"
                       />
 
-                      {/* Discord Section */}
                       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
                         <div className="text-xs text-indigo-300 font-medium mb-2">Discord Verification Setup</div>
 
@@ -299,7 +288,6 @@ function ProjectsPageInner() {
                               Connected as <span className="text-white">{discordUser.username}</span>
                             </div>
 
-                            {/* Guild selector */}
                             {loadingGuilds ? (
                               <div className="text-xs text-white/40">Loading your servers...</div>
                             ) : (
@@ -318,7 +306,6 @@ function ProjectsPageInner() {
                               </select>
                             )}
 
-                            {/* Role selector */}
                             {selectedGuild && (
                               loadingRoles ? (
                                 <div className="text-xs text-white/40">Loading roles...</div>
