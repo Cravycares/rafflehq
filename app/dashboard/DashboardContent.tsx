@@ -97,7 +97,6 @@ export default function DashboardContent() {
       setProject(proj)
       if (!proj) return
 
-      // Incoming requests (Project A side)
       const { data: reqs } = await supabase
         .from("collab_requests")
         .select("*, project_b:project_b_id(name, x_handle, fill_rate, acceptance_rate, total_collabs)")
@@ -105,7 +104,6 @@ export default function DashboardContent() {
         .eq("status", "pending")
       setRequests(reqs || [])
 
-      // Raffles (Project A side)
       const { data: raffles } = await supabase
         .from("raffles")
         .select("*")
@@ -114,7 +112,6 @@ export default function DashboardContent() {
       setActiveRaffles(liveRaffles)
       setEndedRaffles((raffles || []).filter((r: any) => r.status === "ended"))
 
-      // Live entry counts for Project A's active raffles
       const activeCounts: Record<string, number> = {}
       for (const r of liveRaffles) {
         const { count } = await supabase
@@ -125,27 +122,23 @@ export default function DashboardContent() {
       }
       setActiveEntryCounts(activeCounts)
 
-      // Outgoing requests (Project B side)
       const { data: outgoing } = await supabase
         .from("collab_requests")
         .select("*, project_a:project_a_id(name, x_handle)")
         .eq("project_b_id", proj.id)
-      
+
       if (outgoing && outgoing.length > 0) {
-        // Fetch associated raffles
         const { data: collabRaffles } = await supabase
           .from("raffles")
           .select("*")
           .in("collab_request_id", outgoing.map((r: any) => r.id))
 
-        // Attach raffle to each request
         const withRaffles = outgoing.map((req: any) => ({
           ...req,
           raffle: collabRaffles?.find((r: any) => r.collab_request_id === req.id) || null
         }))
         setMyCollabs(withRaffles)
 
-        // Fetch entry counts
         const counts: Record<string, number> = {}
         const wallets: Record<string, any[]> = {}
         for (const req of withRaffles) {
@@ -171,7 +164,6 @@ export default function DashboardContent() {
     load()
   }, [xHandle])
 
-  // Refresh entry counts every 30 seconds (My Collabs)
   useEffect(() => {
     if (tab !== "my_collabs") return
     const interval = setInterval(async () => {
@@ -190,7 +182,6 @@ export default function DashboardContent() {
     return () => clearInterval(interval)
   }, [tab, myCollabs])
 
-  // Refresh entry counts every 30 seconds (Active raffles - Project A)
   useEffect(() => {
     if (tab !== "active") return
     const interval = setInterval(async () => {
@@ -208,31 +199,31 @@ export default function DashboardContent() {
   }, [tab, activeRaffles])
 
   const submitTeamWallet = async (raffleId: string, projectId: string) => {
-  const wallet = newWallets[raffleId]?.trim()
-  if (!wallet || !projectId) return
-  setSubmittingWallet(prev => ({ ...prev, [raffleId]: true }))
-  
-  const { error } = await supabase.from("team_wallets").insert({
-    raffle_id: raffleId,
-    project_b_id: projectId,
-    wallet_address: wallet,
-  })
-  
-  if (error) {
-    console.error("Team wallet insert error:", error)
-    setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
-    return
-  }
+    const wallet = newWallets[raffleId]?.trim()
+    if (!wallet || !projectId) return
+    setSubmittingWallet(prev => ({ ...prev, [raffleId]: true }))
 
-  const { data: tw } = await supabase
-    .from("team_wallets")
-    .select("*")
-    .eq("raffle_id", raffleId)
-    .eq("project_b_id", projectId)
-  setTeamWallets(prev => ({ ...prev, [raffleId]: tw || [] }))
-  setNewWallets(prev => ({ ...prev, [raffleId]: "" }))
-  setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
-}
+    const { error } = await supabase.from("team_wallets").insert({
+      raffle_id: raffleId,
+      project_b_id: projectId,
+      wallet_address: wallet,
+    })
+
+    if (error) {
+      console.error("Team wallet insert error:", error)
+      setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
+      return
+    }
+
+    const { data: tw } = await supabase
+      .from("team_wallets")
+      .select("*")
+      .eq("raffle_id", raffleId)
+      .eq("project_b_id", projectId)
+    setTeamWallets(prev => ({ ...prev, [raffleId]: tw || [] }))
+    setNewWallets(prev => ({ ...prev, [raffleId]: "" }))
+    setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
+  }
 
   const copyRaffleLink = (raffleId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/raffles/${raffleId}`)
@@ -241,7 +232,6 @@ export default function DashboardContent() {
   }
 
   const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length
-  const totalDecided = acceptedIds.length + declinedIds.length
   const myAcceptanceRate = project?.acceptance_rate ?? 0
 
   const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
@@ -273,13 +263,14 @@ export default function DashboardContent() {
     const id = pendingAcceptId
     if (!id) return
     const community = parseInt(allocations[id]?.community || "0")
+    const team = parseInt(allocations[id]?.team || "0")
     const req = requests.find((r: any) => r.id === id)
     if (!req) return
 
     await supabase.from("collab_requests").update({
       status: "accepted",
       community_spots: community,
-      team_spots: parseInt(allocations[id]?.team || "0"),
+      team_spots: team,
       responded_at: new Date().toISOString()
     }).eq("id", id)
 
@@ -289,7 +280,7 @@ export default function DashboardContent() {
       project_b_id: req.project_b_id,
       title: `${project?.name} x ${req.project_b?.name}`,
       community_spots: community,
-      team_spots: parseInt(allocations[id]?.team || "0"),
+      team_spots: team,
       status: "live",
       starts_at: new Date(requirements.startsAt).toISOString(),
       ends_at: new Date(requirements.endsAt).toISOString(),
@@ -321,7 +312,20 @@ export default function DashboardContent() {
       total_requests_accepted: newAccepted,
       acceptance_rate: newRate,
     }).eq("id", project?.id)
-    setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, total_requests_accepted: newAccepted, acceptance_rate: newRate }))
+
+    // Deduct allocated spots from total_spots_listed
+    const newTotal = Math.max(0, (project?.total_spots_listed || 0) - community - team)
+    await supabase.from("projects").update({
+      total_spots_listed: newTotal,
+    }).eq("id", project?.id)
+
+    setProject((prev: any) => ({
+      ...prev,
+      total_requests_received: newReceived,
+      total_requests_accepted: newAccepted,
+      acceptance_rate: newRate,
+      total_spots_listed: newTotal,
+    }))
   }
 
   const handleDrawWinners = async (raffle: any) => {
@@ -333,7 +337,6 @@ export default function DashboardContent() {
       .eq("raffle_id", raffle.id)
       .eq("is_fully_verified", true)
 
-    // Update Project B's fill rate
     if (raffle.project_b_id && raffle.community_spots > 0) {
       const { data: projectB } = await supabase
         .from("projects")
@@ -381,7 +384,6 @@ export default function DashboardContent() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
 
-      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -457,7 +459,6 @@ export default function DashboardContent() {
         </div>
       )}
 
-      {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-40 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/"><Logo size={36} /></a>
@@ -468,10 +469,9 @@ export default function DashboardContent() {
               <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full">✓ verified</span>
             </div>
             <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-                className="text-sm text-white/40 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                      Sign out
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-sm text-white/40 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
+              Sign out
             </button>
           </div>
         </div>
@@ -479,7 +479,6 @@ export default function DashboardContent() {
 
       <div className="pt-24 pb-16 px-6 max-w-6xl mx-auto">
 
-        {/* HEADER */}
         <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="text-sm text-purple-400 font-medium uppercase tracking-widest mb-2">Dashboard</div>
@@ -502,7 +501,6 @@ export default function DashboardContent() {
           </div>
         </div>
 
-        {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Pending Requests", value: String(pendingCount), color: "text-yellow-400" },
@@ -517,7 +515,6 @@ export default function DashboardContent() {
           ))}
         </div>
 
-        {/* TABS */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit flex-wrap">
           {([
             { key: "", label: `Incoming${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
@@ -615,20 +612,19 @@ export default function DashboardContent() {
                           Accept & Set Requirements
                         </button>
                         <button onClick={async () => {
-                        setDeclinedIds(prev => [...prev, req.id])
-                        await supabase.from("collab_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", req.id)
-
-                        const newReceived = (project?.total_requests_received || 0) + 1
-                        const newAccepted = project?.total_requests_accepted || 0
-                        const newRate = Math.round((newAccepted / newReceived) * 100)
-                        await supabase.from("projects").update({
-                        total_requests_received: newReceived,
-                        acceptance_rate: newRate,
-                        }).eq("id", project?.id)
-                        setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, acceptance_rate: newRate }))
-                            }}
-                        className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
-                        Decline
+                          setDeclinedIds(prev => [...prev, req.id])
+                          await supabase.from("collab_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", req.id)
+                          const newReceived = (project?.total_requests_received || 0) + 1
+                          const newAccepted = project?.total_requests_accepted || 0
+                          const newRate = Math.round((newAccepted / newReceived) * 100)
+                          await supabase.from("projects").update({
+                            total_requests_received: newReceived,
+                            acceptance_rate: newRate,
+                          }).eq("id", project?.id)
+                          setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, acceptance_rate: newRate }))
+                        }}
+                          className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
+                          Decline
                         </button>
                       </div>
                     )}
@@ -687,11 +683,10 @@ export default function DashboardContent() {
                         </div>
                       )}
                       <button
-  onClick={() => { window.location.href = `/raffles/${r.id}` }}
-  className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors"
->
-  View →
-</button>
+                        onClick={() => { window.location.href = `/raffles/${r.id}` }}
+                        className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors">
+                        View →
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -756,7 +751,6 @@ export default function DashboardContent() {
 
                   {collab.status === "accepted" && raffle && (
                     <div className="space-y-4">
-                      {/* Raffle info */}
                       <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                           <div>
@@ -766,18 +760,15 @@ export default function DashboardContent() {
                               <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{raffle.team_spots} team spots allocated</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {raffle.ends_at && new Date(raffle.ends_at) > new Date() && (
-                              <div className="text-right">
-                                <div className="text-xs text-white/40 mb-0.5">Time remaining</div>
-                                <RaffleCountdown endsAt={raffle.ends_at} />
-                              </div>
-                            )}
-                          </div>
+                          {raffle.ends_at && new Date(raffle.ends_at) > new Date() && (
+                            <div className="text-right">
+                              <div className="text-xs text-white/40 mb-0.5">Time remaining</div>
+                              <RaffleCountdown endsAt={raffle.ends_at} />
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Live entry count */}
                       <div className="flex items-center gap-4">
                         <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -798,14 +789,12 @@ export default function DashboardContent() {
                         </div>
                       </div>
 
-                      {/* Team wallet submission */}
                       {raffle.team_spots > 0 && (
                         <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="text-sm font-semibold text-blue-300">Team Wallets</div>
                             <div className="text-xs text-white/40">{submitted.length} / {raffle.team_spots} submitted</div>
                           </div>
-
                           {submitted.length > 0 && (
                             <div className="space-y-1.5 mb-3">
                               {submitted.map((w: any, i: number) => (
@@ -817,7 +806,6 @@ export default function DashboardContent() {
                               ))}
                             </div>
                           )}
-
                           {remaining > 0 && (
                             <div className="flex gap-2">
                               <input
@@ -830,13 +818,11 @@ export default function DashboardContent() {
                               <button
                                 onClick={() => submitTeamWallet(raffle.id, project?.id)}
                                 disabled={!newWallets[raffle.id]?.trim() || submittingWallet[raffle.id]}
-                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors flex-shrink-0"
-                              >
+                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors flex-shrink-0">
                                 {submittingWallet[raffle.id] ? "..." : "Submit"}
                               </button>
                             </div>
                           )}
-
                           {remaining === 0 && (
                             <div className="text-xs text-green-400 mt-1">All team wallets submitted ✓</div>
                           )}
