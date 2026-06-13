@@ -242,7 +242,7 @@ export default function DashboardContent() {
 
   const pendingCount = requests.filter(r => !acceptedIds.includes(r.id) && !declinedIds.includes(r.id)).length
   const totalDecided = acceptedIds.length + declinedIds.length
-  const myAcceptanceRate = totalDecided > 0 ? Math.round((acceptedIds.length / totalDecided) * 100) : 34
+  const myAcceptanceRate = project?.acceptance_rate ?? 0
 
   const updateAlloc = (id: number, field: keyof Allocation, value: string) =>
     setAllocations(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
@@ -311,6 +311,17 @@ export default function DashboardContent() {
     setAcceptedIds(prev => [...prev, id])
     setShowModal(false)
     setPendingAcceptId(null)
+
+    // Update acceptance rate
+    const newReceived = (project?.total_requests_received || 0) + 1
+    const newAccepted = (project?.total_requests_accepted || 0) + 1
+    const newRate = Math.round((newAccepted / newReceived) * 100)
+    await supabase.from("projects").update({
+      total_requests_received: newReceived,
+      total_requests_accepted: newAccepted,
+      acceptance_rate: newRate,
+    }).eq("id", project?.id)
+    setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, total_requests_accepted: newAccepted, acceptance_rate: newRate }))
   }
 
   const handleDrawWinners = async (raffle: any) => {
@@ -584,9 +595,21 @@ export default function DashboardContent() {
                           className="w-full bg-green-600 hover:bg-green-500 transition-colors text-white font-medium py-2.5 rounded-xl text-sm">
                           Accept & Set Requirements
                         </button>
-                        <button onClick={() => setDeclinedIds(prev => [...prev, req.id])}
-                          className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
-                          Decline
+                        <button onClick={async () => {
+                        setDeclinedIds(prev => [...prev, req.id])
+                        await supabase.from("collab_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", req.id)
+
+                        const newReceived = (project?.total_requests_received || 0) + 1
+                        const newAccepted = project?.total_requests_accepted || 0
+                        const newRate = Math.round((newAccepted / newReceived) * 100)
+                        await supabase.from("projects").update({
+                        total_requests_received: newReceived,
+                        acceptance_rate: newRate,
+                        }).eq("id", project?.id)
+                        setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, acceptance_rate: newRate }))
+                            }}
+                        className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
+                        Decline
                         </button>
                       </div>
                     )}
