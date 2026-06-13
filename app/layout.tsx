@@ -5,9 +5,14 @@ import { Providers } from "./providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "RaffleHQ",
-  description: "NFT Whitelist Collaboration Platform",
+  description: "Verified whitelist collaboration platform",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({
