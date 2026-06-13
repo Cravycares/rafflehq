@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
+import Nav from "@/components/Nav"
 
 type Requirements = {
   id: string
@@ -319,8 +320,9 @@ function RafflePageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white px-6 py-12">
-      <div className="max-w-xl mx-auto">
+  <div className="min-h-screen bg-[#0a0a0a] text-white px-6 pt-28 pb-12">
+    <Nav />
+    <div className="max-w-xl mx-auto">
         <div className="mb-8">
           <span className="text-purple-400 text-sm font-medium">LIVE RAFFLE</span>
           <h1 className="text-3xl font-bold mt-2">{raffleName || `Raffle #${raffleId.slice(0, 8)}...`}</h1>
