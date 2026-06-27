@@ -18,26 +18,42 @@ export default function ProjectProfile() {
 
   useEffect(() => {
     const load = async () => {
-      const xHandle = `@${handle}`
+  const xHandle = `@${handle}`
 
-      const { data: proj } = await supabase
+  const { data: proj } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("x_handle", xHandle)
+    .maybeSingle()
+
+  if (!proj) { setLoading(false); return }
+
+  // Fetch live Ethos score and update DB
+  try {
+    const ethosRes = await fetch(`/api/ethos?handle=${handle}`)
+    const ethosData = await ethosRes.json()
+    if (ethosData.score != null) {
+      await supabase
         .from("projects")
-        .select("*")
-        .eq("x_handle", xHandle)
-        .maybeSingle()
-
-      if (!proj) { setLoading(false); return }
-      setProject(proj)
-
-      const { data: raffles } = await supabase
-        .from("raffles")
-        .select("*")
-        .eq("project_a_id", proj.id)
-        .eq("status", "live")
-
-      setActiveRaffles(raffles || [])
-      setLoading(false)
+        .update({ ethos_score: ethosData.score })
+        .eq("id", proj.id)
+      proj.ethos_score = ethosData.score
     }
+  } catch (_) {
+    // Ethos fetch failed — use stored value, no problem
+  }
+
+  setProject(proj)
+
+  const { data: raffles } = await supabase
+    .from("raffles")
+    .select("*")
+    .eq("project_a_id", proj.id)
+    .eq("status", "live")
+
+  setActiveRaffles(raffles || [])
+  setLoading(false)
+}
     load()
   }, [handle])
 
