@@ -16,6 +16,7 @@ function ListSpotsModal({ onClose }: { onClose: () => void }) {
     if (!totalSpots || parseInt(totalSpots) <= 0) return alert("Enter a valid number of spots")
     setSaving(true)
     const xHandle = (session as any)?.xHandle
+
     await supabase.from("projects").upsert({
       x_handle: `@${xHandle}`,
       name: xHandle,
@@ -24,6 +25,22 @@ function ListSpotsModal({ onClose }: { onClose: () => void }) {
       community_spots_pct: communityPct,
       team_spots_pct: 100 - communityPct,
     }, { onConflict: "x_handle" }).select()
+
+    // Fetch Ethos score
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("x_handle", `@${xHandle}`)
+      .maybeSingle()
+
+    if (proj) {
+      await fetch("/api/ethos/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ xHandle, projectId: proj.id }),
+      })
+    }
+
     setSaving(false)
     setDone(true)
   }

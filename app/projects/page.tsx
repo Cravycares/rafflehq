@@ -226,7 +226,7 @@ function ProjectsPageInner() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50"
-              />
+          />
         </div>
         <div className="flex gap-2">
           {([
@@ -269,7 +269,6 @@ function ProjectsPageInner() {
                     : "border-white/[0.08] hover:border-purple-500/25"
                 }`}
               >
-                {/* Card top — clickable to profile */}
                 <Link href={`/projects/${project.x_handle?.replace("@", "")}`} className="block p-5 pb-4">
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0 ${getAvatarColor(project.name)}`}>
@@ -303,13 +302,24 @@ function ProjectsPageInner() {
                     <span className="text-white/40">
                       <span className="text-white font-semibold">{(project.total_spots_listed || 0).toLocaleString()}</span> spots available
                     </span>
-                    {project.total_collabs > 0 && (
+                    {project.ethos_score !== null && project.ethos_score !== undefined ? (
+                      
+                        <a
+                      href={`https://app.ethos.network/profile/x/${project.x_handle?.replace("@", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full hover:bg-blue-500/20 transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <span className="text-[10px] font-semibold">Ethos</span>
+                        <span className="text-[10px] font-bold">{project.ethos_score}</span>
+                      </a>
+                    ) : project.total_collabs > 0 ? (
                       <span className="text-white/25">{project.total_collabs} past collabs</span>
-                    )}
+                    ) : null}
                   </div>
                 </Link>
 
-                {/* Request form or button */}
                 {requesting === project.id ? (
                   <div className="px-5 pb-5 pt-1 border-t border-white/[0.06] space-y-2.5">
                     <input
