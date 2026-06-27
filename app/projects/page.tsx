@@ -29,6 +29,18 @@ function MetricValue({ value }: { value: number }) {
   return <div className={`text-lg font-bold ${color}`}>{value}%</div>
 }
 
+function Toast({ message, type }: { message: string; type: "success" | "error" }) {
+  return (
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-xl border backdrop-blur-sm transition-all ${
+      type === "success"
+        ? "bg-green-500/10 border-green-500/30 text-green-300"
+        : "bg-red-500/10 border-red-500/30 text-red-300"
+    }`}>
+      {type === "success" ? "✓ " : "✕ "}{message}
+    </div>
+  )
+}
+
 function ProjectsPageInner() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
@@ -41,6 +53,7 @@ function ProjectsPageInner() {
   const [communityInput, setCommunityInput] = useState("")
   const [teamInput, setTeamInput] = useState("")
   const [message, setMessage] = useState("")
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
 
   const [discordToken, setDiscordToken] = useState("")
   const [discordUser, setDiscordUser] = useState(null)
@@ -50,6 +63,11 @@ function ProjectsPageInner() {
   const [selectedRole, setSelectedRole] = useState(null)
   const [loadingGuilds, setLoadingGuilds] = useState(false)
   const [loadingRoles, setLoadingRoles] = useState(false)
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -132,16 +150,16 @@ function ProjectsPageInner() {
     if (!session) { signIn("twitter"); return }
     const community = parseInt(communityInput)
     const team = parseInt(teamInput || "0")
-    if (!community || community <= 0) return alert("Enter a valid number of community spots")
-    if (!discordUser || !selectedGuild || !selectedRole) return alert("Please connect Discord and select your server and role")
+    if (!community || community <= 0) return showToast("Enter a valid number of community spots", "error")
+    if (!discordUser || !selectedGuild || !selectedRole) return showToast("Please connect Discord and select your server and role", "error")
 
     const xHandle = (session as any)?.xHandle
     const { data: me } = await supabase
       .from("projects")
       .select("id")
       .eq("x_handle", `@${xHandle}`)
-      .single()
-    if (!me) return alert("Your project profile not found. Please sign in first.")
+      .maybeSingle()
+    if (!me) return showToast("Your project profile not found. Please sign in first.", "error")
 
     const { error } = await supabase.from("collab_requests").insert({
       project_a_id: project.id,
@@ -157,10 +175,10 @@ function ProjectsPageInner() {
       discord_role_name: selectedRole.name,
     })
 
-    if (error) return alert("Failed to send request: " + error.message)
+    if (error) return showToast("Failed to send request. Please try again.", "error")
 
     sessionStorage.removeItem("rafflehq_request")
-    alert(`Request sent to ${project.name}!`)
+    showToast(`Request sent to ${project.name}!`, "success")
     setRequesting(null)
     setCommunityInput("")
     setTeamInput("")
@@ -196,6 +214,8 @@ function ProjectsPageInner() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
       <Nav />
+
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       {/* HERO */}
       <div className="pt-24 pb-10 px-6 max-w-7xl mx-auto border-b border-white/5">
@@ -302,10 +322,9 @@ function ProjectsPageInner() {
                     <span className="text-white/40">
                       <span className="text-white font-semibold">{(project.total_spots_listed || 0).toLocaleString()}</span> spots available
                     </span>
-                    {project.ethos_score !== null && project.ethos_score !== undefined ? (
-                      
-                        <a
-                      href={`https://app.ethos.network/profile/x/${project.x_handle?.replace("@", "")}`}
+                    {project.ethos_score != null && project.ethos_score !== undefined ? (
+                      <a
+                        href={`https://app.ethos.network/profile/x/${project.x_handle?.replace("@", "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full hover:bg-blue-500/20 transition-colors"
