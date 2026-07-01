@@ -8,14 +8,69 @@ import Link from "next/link"
 import { Logo } from "@/components/Logo"
 import { signOut } from "next-auth/react"
 
+// ── Design tokens ──────────────────────────────────────────
+const VIOLET = "#7C3AED"
+const INDIGO = "#4F46E5"
+const GOLD = "#D4A853"
+const FG = "#F0EEF6"
+const FG45 = "rgba(240,238,246,0.45)"
+const FG35 = "rgba(240,238,246,0.35)"
+const FG08 = "rgba(240,238,246,0.08)"
+const FG06 = "rgba(240,238,246,0.06)"
+const GRAD = `linear-gradient(135deg, ${VIOLET}, ${INDIGO})`
+
+// ── Helpers ────────────────────────────────────────────────
+function fillColor(rate: number) {
+  if (rate >= 80) return "#22C55E"
+  if (rate >= 50) return GOLD
+  return "#EF4444"
+}
+
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <div className="h-[3px] w-full rounded-full" style={{ background: FG08 }}>
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${value}%`, background: color }} />
+    </div>
+  )
+}
+
+function ReputationRing({ score, size = 120 }: { score: number; size?: number }) {
+  const sw = 5
+  const r = (size - sw * 2) / 2
+  const circ = r * 2 * Math.PI
+  const offset = circ - (Math.min(score, 100) / 100) * circ
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={FG08} strokeWidth={sw} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={GOLD} strokeWidth={sw} fill="none"
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1.2s ease" }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold" style={{ color: FG }}>{score}</span>
+        <span className="text-[9px] uppercase tracking-[0.15em]" style={{ color: GOLD }}>Ethos</span>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+  return (
+    <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: "rgba(240,238,246,0.018)", border: `1px solid ${FG06}` }}>
+      <div className="absolute top-0 left-4 right-4 h-px" style={{ background: `linear-gradient(90deg, transparent, rgba(124,58,237,0.5), transparent)` }} />
+      <div className="text-2xl font-bold mb-0.5" style={{ color: color || FG }}>{value}</div>
+      <div className="text-xs mb-1" style={{ color: FG35 }}>{label}</div>
+      {sub && <div className="text-[11px]" style={{ color: FG45 }}>{sub}</div>}
+    </div>
+  )
+}
+
 function FillRateBadge({ rate }: { rate: number }) {
-  const color =
-    rate >= 80 ? "text-green-300 bg-green-500/10 border-green-500/20" :
+  const color = rate >= 80 ? "text-green-300 bg-green-500/10 border-green-500/20" :
     rate >= 50 ? "text-yellow-300 bg-yellow-500/10 border-yellow-500/20" :
-                 "text-red-300 bg-red-500/10 border-red-500/20"
-  const label =
-    rate >= 80 ? "High engagement" :
-    rate >= 50 ? "Medium engagement" : "Low engagement"
+    "text-red-300 bg-red-500/10 border-red-500/20"
+  const label = rate >= 80 ? "High engagement" : rate >= 50 ? "Medium engagement" : "Low engagement"
   return (
     <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${color}`}>
       <span className="font-bold">{rate}% fill rate</span>
@@ -33,7 +88,7 @@ function RaffleCountdown({ endsAt }: { endsAt: string }) {
       const h = Math.floor(diff / (1000 * 60 * 60))
       const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
       const s = Math.floor((diff % (1000 * 60)) / 1000)
-      setTimeLeft(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`)
+      setTimeLeft(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`)
     }
     update()
     const timer = setInterval(update, 1000)
@@ -89,35 +144,24 @@ export default function DashboardContent() {
   useEffect(() => {
     if (!xHandle) return
     const load = async () => {
-      const { data: proj } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("x_handle", `@${xHandle}`)
-        .maybeSingle()
+      const { data: proj } = await supabase.from("projects").select("*").eq("x_handle", `@${xHandle}`).maybeSingle()
       setProject(proj)
       if (!proj) return
 
       const { data: reqs } = await supabase
         .from("collab_requests")
         .select("*, project_b:project_b_id(name, x_handle, fill_rate, acceptance_rate, total_collabs)")
-        .eq("project_a_id", proj.id)
-        .eq("status", "pending")
+        .eq("project_a_id", proj.id).eq("status", "pending")
       setRequests(reqs || [])
 
-      const { data: raffles } = await supabase
-        .from("raffles")
-        .select("*")
-        .eq("project_a_id", proj.id)
+      const { data: raffles } = await supabase.from("raffles").select("*").eq("project_a_id", proj.id)
       const liveRaffles = (raffles || []).filter((r: any) => r.status === "live")
       setActiveRaffles(liveRaffles)
       setEndedRaffles((raffles || []).filter((r: any) => r.status === "ended"))
 
       const activeCounts: Record<string, number> = {}
       for (const r of liveRaffles) {
-        const { count } = await supabase
-          .from("raffle_entries")
-          .select("*", { count: "exact", head: true })
-          .eq("raffle_id", r.id)
+        const { count } = await supabase.from("raffle_entries").select("*", { count: "exact", head: true }).eq("raffle_id", r.id)
         activeCounts[r.id] = count || 0
       }
       setActiveEntryCounts(activeCounts)
@@ -128,11 +172,7 @@ export default function DashboardContent() {
         .eq("project_b_id", proj.id)
 
       if (outgoing && outgoing.length > 0) {
-        const { data: collabRaffles } = await supabase
-          .from("raffles")
-          .select("*")
-          .in("collab_request_id", outgoing.map((r: any) => r.id))
-
+        const { data: collabRaffles } = await supabase.from("raffles").select("*").in("collab_request_id", outgoing.map((r: any) => r.id))
         const withRaffles = outgoing.map((req: any) => ({
           ...req,
           raffle: collabRaffles?.find((r: any) => r.collab_request_id === req.id) || null
@@ -143,17 +183,9 @@ export default function DashboardContent() {
         const wallets: Record<string, any[]> = {}
         for (const req of withRaffles) {
           if (req.raffle) {
-            const { count } = await supabase
-              .from("raffle_entries")
-              .select("*", { count: "exact", head: true })
-              .eq("raffle_id", req.raffle.id)
+            const { count } = await supabase.from("raffle_entries").select("*", { count: "exact", head: true }).eq("raffle_id", req.raffle.id)
             counts[req.raffle.id] = count || 0
-
-            const { data: tw } = await supabase
-              .from("team_wallets")
-              .select("*")
-              .eq("raffle_id", req.raffle.id)
-              .eq("project_b_id", proj.id)
+            const { data: tw } = await supabase.from("team_wallets").select("*").eq("raffle_id", req.raffle.id).eq("project_b_id", proj.id)
             wallets[req.raffle.id] = tw || []
           }
         }
@@ -170,10 +202,7 @@ export default function DashboardContent() {
       const counts: Record<string, number> = {}
       for (const collab of myCollabs) {
         if (collab.raffle) {
-          const { count } = await supabase
-            .from("raffle_entries")
-            .select("*", { count: "exact", head: true })
-            .eq("raffle_id", collab.raffle.id)
+          const { count } = await supabase.from("raffle_entries").select("*", { count: "exact", head: true }).eq("raffle_id", collab.raffle.id)
           counts[collab.raffle.id] = count || 0
         }
       }
@@ -187,10 +216,7 @@ export default function DashboardContent() {
     const interval = setInterval(async () => {
       const counts: Record<string, number> = {}
       for (const r of activeRaffles) {
-        const { count } = await supabase
-          .from("raffle_entries")
-          .select("*", { count: "exact", head: true })
-          .eq("raffle_id", r.id)
+        const { count } = await supabase.from("raffle_entries").select("*", { count: "exact", head: true }).eq("raffle_id", r.id)
         counts[r.id] = count || 0
       }
       setActiveEntryCounts(counts)
@@ -202,24 +228,9 @@ export default function DashboardContent() {
     const wallet = newWallets[raffleId]?.trim()
     if (!wallet || !projectId) return
     setSubmittingWallet(prev => ({ ...prev, [raffleId]: true }))
-
-    const { error } = await supabase.from("team_wallets").insert({
-      raffle_id: raffleId,
-      project_b_id: projectId,
-      wallet_address: wallet,
-    })
-
-    if (error) {
-      console.error("Team wallet insert error:", error)
-      setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
-      return
-    }
-
-    const { data: tw } = await supabase
-      .from("team_wallets")
-      .select("*")
-      .eq("raffle_id", raffleId)
-      .eq("project_b_id", projectId)
+    const { error } = await supabase.from("team_wallets").insert({ raffle_id: raffleId, project_b_id: projectId, wallet_address: wallet })
+    if (error) { setSubmittingWallet(prev => ({ ...prev, [raffleId]: false })); return }
+    const { data: tw } = await supabase.from("team_wallets").select("*").eq("raffle_id", raffleId).eq("project_b_id", projectId)
     setTeamWallets(prev => ({ ...prev, [raffleId]: tw || [] }))
     setNewWallets(prev => ({ ...prev, [raffleId]: "" }))
     setSubmittingWallet(prev => ({ ...prev, [raffleId]: false }))
@@ -246,16 +257,10 @@ export default function DashboardContent() {
   }
 
   const updateArrayField = (field: "xFollows" | "xLikes" | "xRetweets", index: number, value: string) => {
-    setRequirements(prev => {
-      const updated = [...prev[field]]
-      updated[index] = value
-      return { ...prev, [field]: updated }
-    })
+    setRequirements(prev => { const updated = [...prev[field]]; updated[index] = value; return { ...prev, [field]: updated } })
   }
-
   const addArrayField = (field: "xFollows" | "xLikes" | "xRetweets") =>
     setRequirements(prev => ({ ...prev, [field]: [...prev[field], ""] }))
-
   const removeArrayField = (field: "xFollows" | "xLikes" | "xRetweets", index: number) =>
     setRequirements(prev => ({ ...prev, [field]: prev[field].filter((_, i) => i !== index) }))
 
@@ -267,12 +272,7 @@ export default function DashboardContent() {
     const req = requests.find((r: any) => r.id === id)
     if (!req) return
 
-    await supabase.from("collab_requests").update({
-      status: "accepted",
-      community_spots: community,
-      team_spots: team,
-      responded_at: new Date().toISOString()
-    }).eq("id", id)
+    await supabase.from("collab_requests").update({ status: "accepted", community_spots: community, team_spots: team, responded_at: new Date().toISOString() }).eq("id", id)
 
     const { data: raffle } = await supabase.from("raffles").insert({
       collab_request_id: id,
@@ -303,552 +303,591 @@ export default function DashboardContent() {
     setShowModal(false)
     setPendingAcceptId(null)
 
-    // Update acceptance rate
     const newReceived = (project?.total_requests_received || 0) + 1
     const newAccepted = (project?.total_requests_accepted || 0) + 1
     const newRate = Math.round((newAccepted / newReceived) * 100)
-    await supabase.from("projects").update({
-      total_requests_received: newReceived,
-      total_requests_accepted: newAccepted,
-      acceptance_rate: newRate,
-    }).eq("id", project?.id)
+    await supabase.from("projects").update({ total_requests_received: newReceived, total_requests_accepted: newAccepted, acceptance_rate: newRate }).eq("id", project?.id)
 
-    // Deduct allocated spots from total_spots_listed
     const newTotal = Math.max(0, (project?.total_spots_listed || 0) - community - team)
-    await supabase.from("projects").update({
-      total_spots_listed: newTotal,
-    }).eq("id", project?.id)
-
-    setProject((prev: any) => ({
-      ...prev,
-      total_requests_received: newReceived,
-      total_requests_accepted: newAccepted,
-      acceptance_rate: newRate,
-      total_spots_listed: newTotal,
-    }))
+    await supabase.from("projects").update({ total_spots_listed: newTotal }).eq("id", project?.id)
+    setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, total_requests_accepted: newAccepted, acceptance_rate: newRate, total_spots_listed: newTotal }))
   }
 
   const handleDrawWinners = async (raffle: any) => {
     if (!confirm(`Draw winners for "${raffle.title}"? This cannot be undone.`)) return
-
-    const { data: entries } = await supabase
-      .from("raffle_entries")
-      .select("wallet_address, discord_username")
-      .eq("raffle_id", raffle.id)
-      .eq("is_fully_verified", true)
+    const { data: entries } = await supabase.from("raffle_entries").select("wallet_address, discord_username").eq("raffle_id", raffle.id).eq("is_fully_verified", true)
 
     if (raffle.project_b_id && raffle.community_spots > 0) {
-      const { data: projectB } = await supabase
-        .from("projects")
-        .select("total_community_spots_offered, total_entries_received")
-        .eq("id", raffle.project_b_id)
-        .maybeSingle()
-
+      const { data: projectB } = await supabase.from("projects").select("total_community_spots_offered, total_entries_received").eq("id", raffle.project_b_id).maybeSingle()
       const newOffered = (projectB?.total_community_spots_offered || 0) + raffle.community_spots
       const newReceived = (projectB?.total_entries_received || 0) + (entries?.length || 0)
       const newFillRate = newOffered > 0 ? Math.min(100, Math.round((newReceived / newOffered) * 100)) : 0
-
-      await supabase.from("projects").update({
-        total_community_spots_offered: newOffered,
-        total_entries_received: newReceived,
-        fill_rate: newFillRate,
-      }).eq("id", raffle.project_b_id)
+      await supabase.from("projects").update({ total_community_spots_offered: newOffered, total_entries_received: newReceived, fill_rate: newFillRate }).eq("id", raffle.project_b_id)
     }
 
-    const { data: tw } = await supabase
-      .from("team_wallets")
-      .select("wallet_address")
-      .eq("raffle_id", raffle.id)
-
+    const { data: tw } = await supabase.from("team_wallets").select("wallet_address").eq("raffle_id", raffle.id)
     await supabase.from("raffles").update({ status: "ended", winners_drawn: true }).eq("id", raffle.id)
 
     const rows = ["wallet_address,discord_username,type"]
     const shuffled = (entries || []).sort(() => Math.random() - 0.5)
-    shuffled.slice(0, raffle.community_spots).forEach((e: any) =>
-      rows.push(`${e.wallet_address},${e.discord_username || ""},community`)
-    )
-    ;(tw || []).forEach((w: any) =>
-      rows.push(`${w.wallet_address},,team`)
-    )
+    shuffled.slice(0, raffle.community_spots).forEach((e: any) => rows.push(`${e.wallet_address},${e.discord_username || ""},community`))
+    ;(tw || []).forEach((w: any) => rows.push(`${w.wallet_address},,team`))
 
     const blob = new Blob([rows.join("\n")], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${raffle.title}-winners.csv`
-    a.click()
+    const a = document.createElement("a"); a.href = url; a.download = `${raffle.title}-winners.csv`; a.click()
     URL.revokeObjectURL(url)
     setActiveRaffles(prev => prev.filter((r: any) => r.id !== raffle.id))
   }
 
-  return (
-    <div className="min-h-screen bg-[#080808] text-white">
+  const TABS = [
+    { key: "", label: `Incoming${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+    { key: "active", label: `Active (${activeRaffles.length})` },
+    { key: "ended", label: `Ended (${endedRaffles.length})` },
+    { key: "my_collabs", label: `My Collabs (${myCollabs.length})` },
+  ] as const
 
+  return (
+    <div className="min-h-screen text-white" style={{ background: "#0D0D0F" }}>
+
+      {/* ── Requirements Modal ── */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold mb-1">Set Raffle Requirements</h2>
-            <p className="text-sm text-white/50 mb-6">Set when the raffle runs and what entrants must complete.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(12px)" }}>
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6" style={{ background: "#141416", border: `1px solid ${FG06}` }}>
+            <h2 className="text-lg font-bold mb-1" style={{ color: FG }}>Set Raffle Requirements</h2>
+            <p className="text-sm mb-6" style={{ color: FG35 }}>Set when the raffle runs and what entrants must complete.</p>
             <div className="space-y-5">
-              <div>
-                <label className="text-xs text-white/50 block mb-1.5">Raffle Start Time</label>
-                <input type="datetime-local" value={requirements.startsAt}
-                  onChange={e => setRequirements(prev => ({ ...prev, startsAt: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]" />
-              </div>
-              <div>
-                <label className="text-xs text-white/50 block mb-1.5">Raffle End Time</label>
-                <input type="datetime-local" value={requirements.endsAt}
-                  onChange={e => setRequirements(prev => ({ ...prev, endsAt: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs text-white/50">X Accounts to Follow</label>
-                  <button onClick={() => addArrayField("xFollows")} className="text-xs text-purple-400 hover:text-purple-300">+ Add</button>
+              {[
+                { label: "Raffle Start Time", field: "startsAt" as const },
+                { label: "Raffle End Time", field: "endsAt" as const },
+              ].map(({ label, field }) => (
+                <div key={field}>
+                  <label className="text-xs block mb-1.5" style={{ color: FG35 }}>{label}</label>
+                  <input type="datetime-local" value={requirements[field]}
+                    onChange={e => setRequirements(prev => ({ ...prev, [field]: e.target.value }))}
+                    className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none [color-scheme:dark]"
+                    style={{ background: FG08, border: `1px solid rgba(240,238,246,0.1)`, color: FG }} />
                 </div>
-                {requirements.xFollows.map((val, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input type="text" placeholder="e.g. RaffleHQ" value={val}
-                      onChange={e => updateArrayField("xFollows", i, e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500" />
-                    {requirements.xFollows.length > 1 && (
-                      <button onClick={() => removeArrayField("xFollows", i)} className="text-white/30 hover:text-red-400 px-2">✕</button>
-                    )}
+              ))}
+              {(["xFollows", "xLikes", "xRetweets"] as const).map(field => {
+                const labels = { xFollows: "X Accounts to Follow", xLikes: "Post URLs to Like", xRetweets: "Post URLs to Retweet" }
+                const placeholders = { xFollows: "e.g. RaffleHQ", xLikes: "https://x.com/...", xRetweets: "https://x.com/..." }
+                return (
+                  <div key={field}>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs" style={{ color: FG35 }}>{labels[field]}</label>
+                      <button onClick={() => addArrayField(field)} className="text-xs" style={{ color: VIOLET }}>+ Add</button>
+                    </div>
+                    {requirements[field].map((val, i) => (
+                      <div key={i} className="flex gap-2 mb-2">
+                        <input type="text" placeholder={placeholders[field]} value={val}
+                          onChange={e => updateArrayField(field, i, e.target.value)}
+                          className="flex-1 rounded-lg px-4 py-2.5 text-sm focus:outline-none"
+                          style={{ background: FG08, border: `1px solid rgba(240,238,246,0.1)`, color: FG }} />
+                        {requirements[field].length > 1 && (
+                          <button onClick={() => removeArrayField(field, i)} className="px-2 text-sm" style={{ color: FG35 }}>✕</button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs text-white/50">Post URLs to Like</label>
-                  <button onClick={() => addArrayField("xLikes")} className="text-xs text-purple-400 hover:text-purple-300">+ Add</button>
-                </div>
-                {requirements.xLikes.map((val, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input type="text" placeholder="https://x.com/..." value={val}
-                      onChange={e => updateArrayField("xLikes", i, e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500" />
-                    {requirements.xLikes.length > 1 && (
-                      <button onClick={() => removeArrayField("xLikes", i)} className="text-white/30 hover:text-red-400 px-2">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs text-white/50">Post URLs to Retweet</label>
-                  <button onClick={() => addArrayField("xRetweets")} className="text-xs text-purple-400 hover:text-purple-300">+ Add</button>
-                </div>
-                {requirements.xRetweets.map((val, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input type="text" placeholder="https://x.com/..." value={val}
-                      onChange={e => updateArrayField("xRetweets", i, e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500" />
-                    {requirements.xRetweets.length > 1 && (
-                      <button onClick={() => removeArrayField("xRetweets", i)} className="text-white/30 hover:text-red-400 px-2">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 font-medium py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
-              <button onClick={handleAccept} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-colors">Confirm & Go Live</button>
+              <button onClick={() => setShowModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{ background: FG08, color: FG45 }}>
+                Cancel
+              </button>
+              <button onClick={handleAccept}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-85"
+                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}>
+                Confirm & Go Live
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      <nav className="fixed top-0 left-0 right-0 z-40 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/"><Logo size={36} /></a>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
-              <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-              <span className="text-sm text-white/70">{project?.x_handle || xHandle}</span>
-              <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full">✓ verified</span>
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-sm text-white/40 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
-              Sign out
-            </button>
+      {/* ── Nav ── */}
+      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-8 h-16"
+        style={{ background: "rgba(13,13,15,0.88)", backdropFilter: "blur(24px)", borderBottom: `1px solid ${FG06}` }}>
+        <a href="/" className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{ background: GRAD }}>R</div>
+          <span className="font-bold text-[15px] tracking-[-0.02em]" style={{ color: FG }}>RaffleHQ</span>
+        </a>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: FG08, border: `1px solid rgba(240,238,246,0.1)` }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: VIOLET, boxShadow: `0 0 6px ${VIOLET}` }} />
+            <span className="text-sm" style={{ color: FG }}>{project?.x_handle || `@${xHandle}`}</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.15)", color: "#A78BFA" }}>✓ verified</span>
           </div>
+          <button onClick={() => signOut({ callbackUrl: "/" })}
+            className="text-sm px-3 py-1.5 rounded-lg transition-colors hover:opacity-80"
+            style={{ color: FG45, border: `1px solid rgba(240,238,246,0.1)` }}>
+            Sign out
+          </button>
         </div>
       </nav>
 
-      <div className="pt-24 pb-16 px-6 max-w-6xl mx-auto">
+      {/* ── Main Layout ── */}
+      <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
+        <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0,280px) 1fr" }}>
 
-        <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <div className="text-sm text-purple-400 font-medium uppercase tracking-widest mb-2">Dashboard</div>
-            <h1 className="text-3xl font-bold mb-1">{project?.name}</h1>
-            <p className="text-white/40 text-sm">List spots, request collabs, and manage your raffles.</p>
-          </div>
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 flex items-center gap-4 flex-shrink-0">
-            <div>
-              <div className="text-xs text-white/40 mb-1">Your acceptance rate</div>
-              <div className="text-2xl font-bold text-purple-400">{myAcceptanceRate}%</div>
-              <div className="text-xs text-white/30 mt-0.5">Visible to projects browsing you</div>
-            </div>
-            <div className="w-12 h-12 relative flex-shrink-0">
-              <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#7c3aed" strokeWidth="3"
-                  strokeDasharray={`${myAcceptanceRate} ${100 - myAcceptanceRate}`} strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          {[
-            { label: "Pending Requests", value: String(pendingCount), color: "text-yellow-400" },
-            { label: "Active Raffles", value: String(activeRaffles.length), color: "text-green-400" },
-            { label: "My Collabs", value: String(myCollabs.length), color: "text-blue-400" },
-            { label: "Ended Raffles", value: String(endedRaffles.length), color: "text-purple-400" },
-          ].map(s => (
-            <div key={s.label} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
-              <div className={`text-2xl font-bold mb-1 ${s.color}`}>{s.value}</div>
-              <div className="text-xs text-white/40">{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1 mb-8 w-fit flex-wrap">
-          {([
-            { key: "", label: `Incoming${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-            { key: "active", label: `Active (${activeRaffles.length})` },
-            { key: "ended", label: `Ended (${endedRaffles.length})` },
-            { key: "my_collabs", label: `My Collabs (${myCollabs.length})` },
-          ] as const).map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key ? "bg-white/10 text-white" : "text-white/40 hover:text-white"}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* INCOMING REQUESTS */}
-        {tab === "" && (
-          <div className="space-y-4">
-            {requests.map(req => {
-              const isAccepted = acceptedIds.includes(req.id)
-              const isDeclined = declinedIds.includes(req.id)
-              const alloc = allocations[req.id]
-              const community = parseInt(alloc?.community || "0")
-              const team = parseInt(alloc?.team || "0")
-              const total = community + team
-              return (
-                <div key={req.id} className={`bg-white/[0.03] border rounded-2xl p-6 transition-all ${
-                  isAccepted ? "border-green-500/30 bg-green-500/5" :
-                  isDeclined ? "border-red-500/20 opacity-50" : "border-white/[0.08]"
-                }`}>
-                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/20 flex items-center justify-center font-bold text-blue-300 text-lg">
-                          {req.project_b?.name?.[0]}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{req.project_b?.name}</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-white/40">{req.project_b?.x_handle}</span>
-                            <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full">✓ verified</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <FillRateBadge rate={req.project_b?.fill_rate || 0} />
-                        <div className="text-xs text-white/30 bg-white/[0.03] border border-white/[0.06] px-2.5 py-1 rounded-full">
-                          {req.project_b?.total_collabs || 0} past collabs
-                        </div>
-                      </div>
-                      <p className="text-sm text-white/50 leading-relaxed mb-3">{req.message}</p>
-                      <span className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-white/60">
-                        Requesting <strong className="text-white">{req.requested_spots}</strong> spots
-                      </span>
-                    </div>
-
-                    {!isAccepted && !isDeclined && (
-                      <div className="flex flex-col gap-3 min-w-[210px]">
-                        <div className="bg-black/20 border border-white/[0.08] rounded-xl p-4">
-                          <div className="text-xs text-white/40 uppercase tracking-widest mb-3">Allocate spots</div>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-xs text-white/50 mb-1 flex items-center gap-1.5 block">
-                                <span className="w-2 h-2 bg-purple-400 rounded-full inline-block"></span>Community spots
-                              </label>
-                              <input type="number" min="0" placeholder="e.g. 10"
-                                value={alloc?.community || ""}
-                                onChange={e => updateAlloc(req.id, "community", e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-white/50 mb-1 flex items-center gap-1.5 block">
-                                <span className="w-2 h-2 bg-blue-400 rounded-full inline-block"></span>Team spots
-                              </label>
-                              <input type="number" min="0" placeholder="e.g. 5"
-                                value={alloc?.team || ""}
-                                onChange={e => updateAlloc(req.id, "team", e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50" />
-                            </div>
-                          </div>
-                          {total > 0 && (
-                            <div className="mt-3 pt-3 border-t border-white/[0.08]">
-                              <div className="h-1.5 rounded-full overflow-hidden bg-white/10 flex">
-                                <div className="h-full bg-purple-500" style={{ width: `${(community / total) * 100}%` }} />
-                                <div className="h-full bg-blue-500" style={{ width: `${(team / total) * 100}%` }} />
-                              </div>
-                              <div className="flex justify-between text-xs mt-1">
-                                <span className="text-purple-400">{community} community</span>
-                                <span className="text-blue-400">{team} team</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <button onClick={() => openRequirementsModal(req.id)}
-                          className="w-full bg-green-600 hover:bg-green-500 transition-colors text-white font-medium py-2.5 rounded-xl text-sm">
-                          Accept & Set Requirements
-                        </button>
-                        <button onClick={async () => {
-                          setDeclinedIds(prev => [...prev, req.id])
-                          await supabase.from("collab_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", req.id)
-                          const newReceived = (project?.total_requests_received || 0) + 1
-                          const newAccepted = project?.total_requests_accepted || 0
-                          const newRate = Math.round((newAccepted / newReceived) * 100)
-                          await supabase.from("projects").update({
-                            total_requests_received: newReceived,
-                            acceptance_rate: newRate,
-                          }).eq("id", project?.id)
-                          setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, acceptance_rate: newRate }))
-                        }}
-                          className="w-full bg-white/5 hover:bg-red-500/10 hover:text-red-300 transition-colors text-white/40 font-medium py-2 rounded-xl text-sm">
-                          Decline
-                        </button>
-                      </div>
-                    )}
-
-                    {isAccepted && (
-                      <div className="flex-shrink-0 text-right">
-                        <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-300 text-sm px-4 py-2 rounded-xl mb-2">✓ Accepted</div>
-                        <div className="text-xs text-green-400/60 mt-1">Raffle now live ✓</div>
-                      </div>
-                    )}
-                    {isDeclined && (
-                      <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 text-sm px-4 py-2 rounded-xl h-fit">✕ Declined</div>
-                    )}
+          {/* ── Left: Identity Panel ── */}
+          <aside className="space-y-5">
+            <div className="rounded-2xl p-6" style={{ background: "rgba(240,238,246,0.018)", border: `1px solid ${FG06}` }}>
+              <div className="flex flex-col items-center text-center mb-6">
+                {project?.ethos_score != null ? (
+                  <ReputationRing score={project.ethos_score} size={120} />
+                ) : (
+                  <div className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-4xl font-bold"
+                    style={{ background: "rgba(124,58,237,0.12)", border: `2px solid rgba(124,58,237,0.2)`, color: "#A78BFA" }}>
+                    {project?.name?.[0]?.toUpperCase() || "?"}
                   </div>
+                )}
+                <div className="mt-4">
+                  <div className="font-semibold text-base" style={{ color: FG }}>{project?.name || xHandle}</div>
+                  <div className="text-xs mt-0.5" style={{ color: FG35 }}>@{xHandle}</div>
                 </div>
-              )
-            })}
-            {pendingCount === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📭</div><div className="text-sm">No pending requests</div></div>
-            )}
-          </div>
-        )}
+              </div>
 
-        {/* ACTIVE RAFFLES */}
-        {tab === "active" && (
-          <div className="space-y-4">
-            {activeRaffles.map(r => {
-              const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
-              return (
-                <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="font-semibold">{r.title}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs flex-wrap mb-1">
-                        <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
-                        <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-white/40">
-                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                        <span className="text-white font-medium">{activeEntryCounts[r.id] ?? "—"}</span> live entries
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {hasEnded ? (
-                        <button onClick={() => handleDrawWinners(r)}
-                          className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                          Draw Winners
-                        </button>
-                      ) : (
-                        <div className="text-right">
-                          <div className="text-xs text-white/40 mb-1">Time remaining</div>
-                          {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => { window.location.href = `/raffles/${r.id}` }}
-                        className="text-sm bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-500/50 text-white px-4 py-2 rounded-lg transition-colors">
-                        View →
-                      </button>
-                    </div>
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2 justify-center mb-6">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                  style={{ background: "rgba(124,58,237,0.1)", color: "#A78BFA", border: "1px solid rgba(124,58,237,0.2)" }}>
+                  ✓ Verified
+                </span>
+                {project?.ethos_score >= 1600 && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                    style={{ background: "rgba(212,168,83,0.1)", color: GOLD, border: "1px solid rgba(212,168,83,0.22)" }}>
+                    Reputable
+                  </span>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="space-y-3">
+                {[
+                  ["Acceptance Rate", `${myAcceptanceRate}%`],
+                  ["Spots Listed", String(project?.total_spots_listed ?? 0)],
+                  ["Requests Received", String(project?.total_requests_received ?? 0)],
+                  ["Fill Rate", `${project?.fill_rate ?? 0}%`],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between text-sm">
+                    <span style={{ color: FG35 }}>{label}</span>
+                    <span style={{ color: FG }}>{value}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Activity feed — collab requests as activity */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(240,238,246,0.018)", border: `1px solid ${FG06}` }}>
+              <h4 className="text-[10px] uppercase tracking-[0.14em] mb-4" style={{ color: FG35 }}>Recent Activity</h4>
+              {requests.length === 0 && myCollabs.length === 0 ? (
+                <div className="text-center py-6">
+                  <div className="text-2xl mb-2">◌</div>
+                  <div className="text-xs" style={{ color: FG35 }}>No activity yet</div>
                 </div>
-              )
-            })}
-            {activeRaffles.length === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">🎯</div><div className="text-sm">No active raffles</div></div>
-            )}
-          </div>
-        )}
-
-        {/* ENDED RAFFLES */}
-        {tab === "ended" && (
-          <div className="space-y-4">
-            {endedRaffles.map(r => {
-              const total = (r.community_spots || 0) + (r.team_spots || 0)
-              return (
-                <div key={r.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div>
-                    <div className="font-semibold mb-2">{r.title}</div>
-                    <div className="flex items-center gap-2 text-xs flex-wrap">
-                      <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{r.community_spots} community</span>
-                      <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{r.team_spots} team</span>
-                      <span className="text-white/40">• {total} total</span>
+              ) : (
+                <div className="space-y-4">
+                  {[...requests.slice(0, 2).map((r: any) => ({
+                    action: "Incoming request",
+                    project: r.project_b?.name || "Unknown",
+                    spots: r.requested_spots,
+                  })),
+                  ...myCollabs.slice(0, 2).map((c: any) => ({
+                    action: c.status === "accepted" ? "Collab accepted" : c.status === "declined" ? "Collab declined" : "Request sent",
+                    project: c.project_a?.name || "Unknown",
+                    spots: null,
+                  }))].map((a, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: VIOLET }} />
+                      <div>
+                        <div className="text-[13px]" style={{ color: FG }}>{a.action}</div>
+                        <div className="text-[11px]" style={{ color: FG35 }}>
+                          {a.project}{a.spots ? ` · ${a.spots} spots` : ""}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <button onClick={() => handleDrawWinners(r)}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
-                    ⬇ Download {total} wallets (.csv)
-                  </button>
+                  ))}
                 </div>
-              )
-            })}
-            {endedRaffles.length === 0 && (
-              <div className="text-center py-16 text-white/30"><div className="text-4xl mb-3">📊</div><div className="text-sm">No ended raffles yet</div></div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          </aside>
 
-        {/* MY COLLABS */}
-        {tab === "my_collabs" && (
-          <div className="space-y-4">
-            {myCollabs.map((collab: any) => {
-              const raffle = collab.raffle
-              const submitted = raffle ? (teamWallets[raffle.id] || []) : []
-              const remaining = raffle ? (raffle.team_spots || 0) - submitted.length : 0
-              return (
-                <div key={collab.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <div className="font-semibold mb-1">{collab.project_a?.name}</div>
-                      <div className="text-xs text-white/40">{collab.project_a?.x_handle}</div>
-                    </div>
-                    <div className={`text-xs px-3 py-1 rounded-full border flex-shrink-0 ${
-                      collab.status === "accepted" ? "bg-green-500/10 border-green-500/20 text-green-300" :
-                      collab.status === "declined" ? "bg-red-500/10 border-red-500/20 text-red-300" :
-                      "bg-yellow-500/10 border-yellow-500/20 text-yellow-300"
-                    }`}>
-                      {collab.status === "accepted" ? "✓ Accepted" : collab.status === "declined" ? "✕ Declined" : "⏳ Pending"}
-                    </div>
-                  </div>
+          {/* ── Right: Main Content ── */}
+          <main className="space-y-6 min-w-0">
 
-                  {collab.status === "accepted" && raffle && (
-                    <div className="space-y-4">
-                      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          <div>
-                            <div className="text-sm font-semibold mb-1">{raffle.title}</div>
-                            <div className="flex items-center gap-2 text-xs flex-wrap">
-                              <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full">{raffle.community_spots} community</span>
-                              <span className="text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">{raffle.team_spots} team spots allocated</span>
-                            </div>
-                          </div>
-                          {raffle.ends_at && new Date(raffle.ends_at) > new Date() && (
-                            <div className="text-right">
-                              <div className="text-xs text-white/40 mb-0.5">Time remaining</div>
-                              <RaffleCountdown endsAt={raffle.ends_at} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label="Pending Requests" value={String(pendingCount)} sub={pendingCount > 0 ? "Needs your review" : "All clear"} color={pendingCount > 0 ? GOLD : "#22C55E"} />
+              <StatCard label="Active Raffles" value={String(activeRaffles.length)} sub="Currently live" color="#22C55E" />
+              <StatCard label="My Collabs" value={String(myCollabs.length)} sub="Outgoing requests" color="#818CF8" />
+              <StatCard label="Ended Raffles" value={String(endedRaffles.length)} sub="Completed" color={FG45} />
+            </div>
 
-                      <div className="flex items-center gap-4">
-                        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <div>
-                            <div className="text-xs text-white/40">Live entries</div>
-                            <div className="text-xl font-bold text-white">{entryCounts[raffle.id] ?? "—"}</div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => window.location.href = `/raffles/${raffle.id}`}
-                            className="text-sm bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-lg transition-colors">
-                            View Raffle →
-                          </button>
-                          <button onClick={() => copyRaffleLink(raffle.id)}
-                            className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors">
-                            {copiedId === raffle.id ? "Copied! ✓" : "Copy Link"}
-                          </button>
-                        </div>
-                      </div>
+            {/* Pill tab selector */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(240,238,246,0.018)", border: `1px solid ${FG06}` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${FG06}` }}>
+                <h3 className="font-semibold" style={{ color: FG }}>Manage</h3>
+                <div className="flex gap-0.5 p-1 rounded-lg" style={{ background: "rgba(240,238,246,0.04)" }}>
+                  {TABS.map(t => (
+                    <button key={t.key} onClick={() => setTab(t.key)}
+                      className="px-3 py-1 rounded-md text-xs font-medium transition-all duration-200"
+                      style={{ background: tab === t.key ? GRAD : "transparent", color: tab === t.key ? "#fff" : FG45 }}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                      {raffle.team_spots > 0 && (
-                        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="text-sm font-semibold text-blue-300">Team Wallets</div>
-                            <div className="text-xs text-white/40">{submitted.length} / {raffle.team_spots} submitted</div>
-                          </div>
-                          {submitted.length > 0 && (
-                            <div className="space-y-1.5 mb-3">
-                              {submitted.map((w: any, i: number) => (
-                                <div key={w.id} className="flex items-center gap-2 text-xs">
-                                  <span className="text-white/40">#{i + 1}</span>
-                                  <span className="font-mono text-white/70 truncate">{w.wallet_address}</span>
-                                  <span className="text-green-400 ml-auto flex-shrink-0">✓</span>
+              <div className="p-6">
+
+                {/* INCOMING */}
+                {tab === "" && (
+                  <div className="space-y-4">
+                    {requests.map(req => {
+                      const isAccepted = acceptedIds.includes(req.id)
+                      const isDeclined = declinedIds.includes(req.id)
+                      const alloc = allocations[req.id]
+                      const community = parseInt(alloc?.community || "0")
+                      const team = parseInt(alloc?.team || "0")
+                      const total = community + team
+                      return (
+                        <div key={req.id} className="rounded-xl p-5 transition-all" style={{
+                          background: isAccepted ? "rgba(34,197,94,0.05)" : "rgba(240,238,246,0.02)",
+                          border: `1px solid ${isAccepted ? "rgba(34,197,94,0.2)" : isDeclined ? "rgba(239,68,68,0.15)" : FG06}`,
+                          opacity: isDeclined ? 0.5 : 1,
+                        }}>
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
+                                  style={{ background: "rgba(79,70,229,0.15)", color: "#818CF8" }}>
+                                  {req.project_b?.name?.[0]}
                                 </div>
-                              ))}
+                                <div>
+                                  <div className="font-semibold text-sm" style={{ color: FG }}>{req.project_b?.name}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs" style={{ color: FG35 }}>{req.project_b?.x_handle}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(79,70,229,0.12)", color: "#818CF8" }}>✓ verified</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap mb-3">
+                                <FillRateBadge rate={req.project_b?.fill_rate || 0} />
+                                <div className="text-xs px-2.5 py-1 rounded-full" style={{ background: FG08, color: FG35 }}>
+                                  {req.project_b?.total_collabs || 0} past collabs
+                                </div>
+                              </div>
+                              {req.message && <p className="text-sm mb-3 leading-relaxed" style={{ color: FG45 }}>{req.message}</p>}
+                              <span className="text-xs px-3 py-1 rounded-full" style={{ background: FG08, color: FG45 }}>
+                                Requesting <strong style={{ color: FG }}>{req.requested_spots}</strong> spots
+                              </span>
                             </div>
-                          )}
-                          {remaining > 0 && (
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder={`Wallet address (${remaining} slot${remaining > 1 ? "s" : ""} remaining)`}
-                                value={newWallets[raffle.id] || ""}
-                                onChange={e => setNewWallets(prev => ({ ...prev, [raffle.id]: e.target.value }))}
-                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-                              />
-                              <button
-                                onClick={() => submitTeamWallet(raffle.id, project?.id)}
-                                disabled={!newWallets[raffle.id]?.trim() || submittingWallet[raffle.id]}
-                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors flex-shrink-0">
-                                {submittingWallet[raffle.id] ? "..." : "Submit"}
+
+                            {!isAccepted && !isDeclined && (
+                              <div className="flex flex-col gap-3 min-w-[210px]">
+                                <div className="rounded-xl p-4" style={{ background: "rgba(240,238,246,0.03)", border: `1px solid ${FG06}` }}>
+                                  <div className="text-[10px] uppercase tracking-[0.12em] mb-3" style={{ color: FG35 }}>Allocate spots</div>
+                                  <div className="space-y-3">
+                                    {[
+                                      { label: "Community spots", field: "community" as const, color: VIOLET },
+                                      { label: "Team spots", field: "team" as const, color: INDIGO },
+                                    ].map(({ label, field, color }) => (
+                                      <div key={field}>
+                                        <label className="text-xs flex items-center gap-1.5 mb-1 block" style={{ color: FG35 }}>
+                                          <span className="w-2 h-2 rounded-full" style={{ background: color }} />{label}
+                                        </label>
+                                        <input type="number" min="0" placeholder="0"
+                                          value={alloc?.[field] || ""}
+                                          onChange={e => updateAlloc(req.id, field, e.target.value)}
+                                          className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                          style={{ background: "rgba(0,0,0,0.3)", border: `1px solid rgba(240,238,246,0.1)`, color: FG }} />
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {total > 0 && (
+                                    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${FG06}` }}>
+                                      <div className="h-1.5 rounded-full overflow-hidden flex" style={{ background: FG08 }}>
+                                        <div className="h-full" style={{ width: `${(community / total) * 100}%`, background: VIOLET }} />
+                                        <div className="h-full" style={{ width: `${(team / total) * 100}%`, background: INDIGO }} />
+                                      </div>
+                                      <div className="flex justify-between text-xs mt-1">
+                                        <span style={{ color: "#A78BFA" }}>{community} community</span>
+                                        <span style={{ color: "#818CF8" }}>{team} team</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <button onClick={() => openRequirementsModal(req.id)}
+                                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-85"
+                                  style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}>
+                                  Accept & Set Requirements
+                                </button>
+                                <button onClick={async () => {
+                                  setDeclinedIds(prev => [...prev, req.id])
+                                  await supabase.from("collab_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", req.id)
+                                  const newReceived = (project?.total_requests_received || 0) + 1
+                                  const newAccepted = project?.total_requests_accepted || 0
+                                  const newRate = Math.round((newAccepted / newReceived) * 100)
+                                  await supabase.from("projects").update({ total_requests_received: newReceived, acceptance_rate: newRate }).eq("id", project?.id)
+                                  setProject((prev: any) => ({ ...prev, total_requests_received: newReceived, acceptance_rate: newRate }))
+                                }}
+                                  className="w-full py-2 rounded-xl text-sm font-medium transition-all"
+                                  style={{ background: FG08, color: FG45 }}
+                                  onMouseEnter={e => { (e.target as HTMLElement).style.background = "rgba(239,68,68,0.1)"; (e.target as HTMLElement).style.color = "#FCA5A5" }}
+                                  onMouseLeave={e => { (e.target as HTMLElement).style.background = FG08; (e.target as HTMLElement).style.color = FG45 }}>
+                                  Decline
+                                </button>
+                              </div>
+                            )}
+                            {isAccepted && (
+                              <div className="flex-shrink-0 text-right">
+                                <div className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl mb-1"
+                                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#86EFAC" }}>
+                                  ✓ Accepted
+                                </div>
+                                <div className="text-xs mt-1" style={{ color: "rgba(134,239,172,0.6)" }}>Raffle now live ✓</div>
+                              </div>
+                            )}
+                            {isDeclined && (
+                              <div className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl h-fit"
+                                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#FCA5A5" }}>
+                                ✕ Declined
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {pendingCount === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-2xl"
+                          style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.14)", color: VIOLET }}>
+                          📭
+                        </div>
+                        <div className="text-sm font-medium mb-1" style={{ color: FG }}>No pending requests</div>
+                        <div className="text-xs" style={{ color: FG35 }}>Incoming collaboration requests will appear here</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ACTIVE RAFFLES */}
+                {tab === "active" && (
+                  <div className="space-y-4">
+                    {activeRaffles.map(r => {
+                      const hasEnded = r.ends_at && new Date(r.ends_at) <= new Date()
+                      return (
+                        <div key={r.id} className="rounded-xl p-5" style={{ background: "rgba(240,238,246,0.02)", border: `1px solid ${FG06}` }}>
+                          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#22C55E" }} />
+                                <span className="font-semibold text-sm" style={{ color: FG }}>{r.title}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs flex-wrap mb-2">
+                                <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.1)", color: "#A78BFA" }}>{r.community_spots} community</span>
+                                <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(79,70,229,0.1)", color: "#818CF8" }}>{r.team_spots} team</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs" style={{ color: FG35 }}>
+                                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22C55E" }} />
+                                <span style={{ color: FG, fontWeight: 600 }}>{activeEntryCounts[r.id] ?? "—"}</span> live entries
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              {hasEnded ? (
+                                <button onClick={() => handleDrawWinners(r)}
+                                  className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-85"
+                                  style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)" }}>
+                                  Draw Winners
+                                </button>
+                              ) : (
+                                <div className="text-right">
+                                  <div className="text-xs mb-1" style={{ color: FG35 }}>Time remaining</div>
+                                  {r.ends_at && <RaffleCountdown endsAt={r.ends_at} />}
+                                </div>
+                              )}
+                              <button onClick={() => window.location.href = `/raffles/${r.id}`}
+                                className="text-sm px-4 py-2 rounded-lg transition-all"
+                                style={{ background: FG08, color: FG, border: `1px solid rgba(240,238,246,0.1)` }}>
+                                View →
                               </button>
                             </div>
-                          )}
-                          {remaining === 0 && (
-                            <div className="text-xs text-green-400 mt-1">All team wallets submitted ✓</div>
-                          )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      )
+                    })}
+                    {activeRaffles.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-2xl"
+                          style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.14)", color: VIOLET }}>◈</div>
+                        <div className="text-sm font-medium mb-1" style={{ color: FG }}>No active raffles</div>
+                        <div className="text-xs" style={{ color: FG35 }}>Accept a collab request to launch a raffle</div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                  {collab.status === "pending" && (
-                    <p className="text-sm text-white/40">Waiting for {collab.project_a?.name} to respond to your request.</p>
-                  )}
-                  {collab.status === "declined" && (
-                    <p className="text-sm text-white/40">Your request was declined by {collab.project_a?.name}.</p>
-                  )}
-                </div>
-              )
-            })}
-            {myCollabs.length === 0 && (
-              <div className="text-center py-16 text-white/30">
-                <div className="text-4xl mb-3">🤝</div>
-                <div className="text-sm">No outgoing requests yet</div>
-                <a href="/projects" className="text-purple-400 text-sm hover:text-purple-300 mt-2 inline-block">Browse projects to request spots →</a>
+                {/* ENDED RAFFLES */}
+                {tab === "ended" && (
+                  <div className="space-y-4">
+                    {endedRaffles.map(r => {
+                      const total = (r.community_spots || 0) + (r.team_spots || 0)
+                      return (
+                        <div key={r.id} className="rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                          style={{ background: "rgba(240,238,246,0.02)", border: `1px solid ${FG06}` }}>
+                          <div>
+                            <div className="font-semibold text-sm mb-2" style={{ color: FG }}>{r.title}</div>
+                            <div className="flex items-center gap-2 text-xs flex-wrap">
+                              <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.1)", color: "#A78BFA" }}>{r.community_spots} community</span>
+                              <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(79,70,229,0.1)", color: "#818CF8" }}>{r.team_spots} team</span>
+                              <span style={{ color: FG35 }}>· {total} total</span>
+                            </div>
+                          </div>
+                          <button onClick={() => handleDrawWinners(r)}
+                            className="flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 rounded-xl transition-opacity hover:opacity-85"
+                            style={{ background: GRAD }}>
+                            ⬇ Download {total} wallets (.csv)
+                          </button>
+                        </div>
+                      )
+                    })}
+                    {endedRaffles.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-2xl"
+                          style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.14)", color: VIOLET }}>◎</div>
+                        <div className="text-sm font-medium mb-1" style={{ color: FG }}>No ended raffles yet</div>
+                        <div className="text-xs" style={{ color: FG35 }}>Completed raffles will appear here</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* MY COLLABS */}
+                {tab === "my_collabs" && (
+                  <div className="space-y-4">
+                    {myCollabs.map((collab: any) => {
+                      const raffle = collab.raffle
+                      const submitted = raffle ? (teamWallets[raffle.id] || []) : []
+                      const remaining = raffle ? (raffle.team_spots || 0) - submitted.length : 0
+                      return (
+                        <div key={collab.id} className="rounded-xl p-5" style={{ background: "rgba(240,238,246,0.02)", border: `1px solid ${FG06}` }}>
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                              <div className="font-semibold text-sm mb-0.5" style={{ color: FG }}>{collab.project_a?.name}</div>
+                              <div className="text-xs" style={{ color: FG35 }}>{collab.project_a?.x_handle}</div>
+                            </div>
+                            <span className="text-xs px-3 py-1 rounded-full flex-shrink-0" style={{
+                              background: collab.status === "accepted" ? "rgba(34,197,94,0.1)" : collab.status === "declined" ? "rgba(239,68,68,0.1)" : "rgba(212,168,83,0.1)",
+                              color: collab.status === "accepted" ? "#86EFAC" : collab.status === "declined" ? "#FCA5A5" : GOLD,
+                              border: `1px solid ${collab.status === "accepted" ? "rgba(34,197,94,0.2)" : collab.status === "declined" ? "rgba(239,68,68,0.2)" : "rgba(212,168,83,0.2)"}`,
+                            }}>
+                              {collab.status === "accepted" ? "✓ Accepted" : collab.status === "declined" ? "✕ Declined" : "⏳ Pending"}
+                            </span>
+                          </div>
+
+                          {collab.status === "accepted" && raffle && (
+                            <div className="space-y-4">
+                              <div className="rounded-xl p-4" style={{ background: "rgba(240,238,246,0.02)", border: `1px solid ${FG06}` }}>
+                                <div className="flex items-center justify-between gap-4 flex-wrap">
+                                  <div>
+                                    <div className="text-sm font-semibold mb-1" style={{ color: FG }}>{raffle.title}</div>
+                                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                                      <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.1)", color: "#A78BFA" }}>{raffle.community_spots} community</span>
+                                      <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(79,70,229,0.1)", color: "#818CF8" }}>{raffle.team_spots} team spots</span>
+                                    </div>
+                                  </div>
+                                  {raffle.ends_at && new Date(raffle.ends_at) > new Date() && (
+                                    <div className="text-right">
+                                      <div className="text-xs mb-0.5" style={{ color: FG35 }}>Time remaining</div>
+                                      <RaffleCountdown endsAt={raffle.ends_at} />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 flex-wrap">
+                                <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(240,238,246,0.02)", border: `1px solid ${FG06}` }}>
+                                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#22C55E" }} />
+                                  <div>
+                                    <div className="text-xs" style={{ color: FG35 }}>Live entries</div>
+                                    <div className="text-xl font-bold" style={{ color: FG }}>{entryCounts[raffle.id] ?? "—"}</div>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button onClick={() => window.location.href = `/raffles/${raffle.id}`}
+                                    className="text-sm px-4 py-2 rounded-lg transition-all"
+                                    style={{ background: FG08, color: FG, border: `1px solid rgba(240,238,246,0.1)` }}>
+                                    View Raffle →
+                                  </button>
+                                  <button onClick={() => copyRaffleLink(raffle.id)}
+                                    className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-85"
+                                    style={{ background: GRAD }}>
+                                    {copiedId === raffle.id ? "Copied! ✓" : "Copy Link"}
+                                  </button>
+                                </div>
+                              </div>
+                              {raffle.team_spots > 0 && (
+                                <div className="rounded-xl p-4" style={{ background: "rgba(79,70,229,0.05)", border: "1px solid rgba(79,70,229,0.18)" }}>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="text-sm font-semibold" style={{ color: "#818CF8" }}>Team Wallets</div>
+                                    <div className="text-xs" style={{ color: FG35 }}>{submitted.length} / {raffle.team_spots} submitted</div>
+                                  </div>
+                                  {submitted.length > 0 && (
+                                    <div className="space-y-1.5 mb-3">
+                                      {submitted.map((w: any, i: number) => (
+                                        <div key={w.id} className="flex items-center gap-2 text-xs">
+                                          <span style={{ color: FG35 }}>#{i + 1}</span>
+                                          <span className="font-mono truncate" style={{ color: FG45 }}>{w.wallet_address}</span>
+                                          <span className="ml-auto flex-shrink-0" style={{ color: "#22C55E" }}>✓</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {remaining > 0 && (
+                                    <div className="flex gap-2">
+                                      <input type="text"
+                                        placeholder={`Wallet address (${remaining} slot${remaining > 1 ? "s" : ""} remaining)`}
+                                        value={newWallets[raffle.id] || ""}
+                                        onChange={e => setNewWallets(prev => ({ ...prev, [raffle.id]: e.target.value }))}
+                                        className="flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                        style={{ background: FG08, border: `1px solid rgba(240,238,246,0.1)`, color: FG }} />
+                                      <button onClick={() => submitTeamWallet(raffle.id, project?.id)}
+                                        disabled={!newWallets[raffle.id]?.trim() || submittingWallet[raffle.id]}
+                                        className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-85 disabled:opacity-40 flex-shrink-0"
+                                        style={{ background: GRAD }}>
+                                        {submittingWallet[raffle.id] ? "..." : "Submit"}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {remaining === 0 && <div className="text-xs mt-1" style={{ color: "#22C55E" }}>All team wallets submitted ✓</div>}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {collab.status === "pending" && <p className="text-sm" style={{ color: FG35 }}>Waiting for {collab.project_a?.name} to respond to your request.</p>}
+                          {collab.status === "declined" && <p className="text-sm" style={{ color: FG35 }}>Your request was declined by {collab.project_a?.name}.</p>}
+                        </div>
+                      )
+                    })}
+                    {myCollabs.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-2xl"
+                          style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.14)", color: VIOLET }}>🤝</div>
+                        <div className="text-sm font-medium mb-1" style={{ color: FG }}>No outgoing requests yet</div>
+                        <a href="/projects" className="text-xs transition-opacity hover:opacity-70" style={{ color: VIOLET }}>Browse projects to request spots →</a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   )
