@@ -122,6 +122,7 @@ function getDefaultRequirements(): Requirements {
 export default function DashboardContent() {
   const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
+  const xImage = (session as any)?.xImage
 
   const [project, setProject] = useState(null)
   const [requests, setRequests] = useState([])
@@ -421,19 +422,33 @@ export default function DashboardContent() {
           <aside className="space-y-5">
             <div className="rounded-2xl p-6" style={{ background: "rgba(240,238,246,0.018)", border: `1px solid ${FG06}` }}>
               <div className="flex flex-col items-center text-center mb-6">
-                {project?.ethos_score != null ? (
-                  <ReputationRing score={project.ethos_score} size={120} />
-                ) : (
-                  <div className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-4xl font-bold"
-                    style={{ background: "rgba(124,58,237,0.12)", border: `2px solid rgba(124,58,237,0.2)`, color: "#A78BFA" }}>
-                    {project?.name?.[0]?.toUpperCase() || "?"}
-                  </div>
-                )}
-                <div className="mt-4">
-                  <div className="font-semibold text-base" style={{ color: FG }}>{project?.name || xHandle}</div>
-                  <div className="text-xs mt-0.5" style={{ color: FG35 }}>@{xHandle}</div>
-                </div>
-              </div>
+  {/* Profile picture or fallback */}
+  {xImage ? (
+    <img src={xImage} alt={xHandle} className="rounded-full object-cover"
+      style={{ width: 120, height: 120, border: `2px solid rgba(124,58,237,0.3)` }} />
+  ) : (
+    <div className="rounded-full flex items-center justify-center text-4xl font-bold"
+      style={{ width: 120, height: 120, background: "rgba(124,58,237,0.12)", border: `2px solid rgba(124,58,237,0.2)`, color: "#A78BFA" }}>
+      {project?.name?.[0]?.toUpperCase() || "?"}
+    </div>
+  )}
+
+  {/* Ethos score beneath avatar */}
+  {project?.ethos_score != null && (
+    <div className="flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full"
+      style={{ background: "rgba(212,168,83,0.1)", border: "1px solid rgba(212,168,83,0.22)" }}>
+      <svg width="12" height="14" viewBox="0 0 14 16" fill="none">
+        <path d="M7 1L13 4.5V11.5L7 15L1 11.5V4.5L7 1Z" stroke="#D4A853" strokeWidth="1.2" fill="none" />
+      </svg>
+      <span className="text-xs font-semibold" style={{ color: "#D4A853" }}>Ethos {project.ethos_score}</span>
+    </div>
+  )}
+
+  <div className="mt-3">
+    <div className="font-semibold text-base" style={{ color: FG }}>{project?.name || xHandle}</div>
+    <div className="text-xs mt-0.5" style={{ color: FG35 }}>@{xHandle}</div>
+  </div>
+</div>
 
               {/* Badges */}
               <div className="flex flex-wrap gap-2 justify-center mb-6">

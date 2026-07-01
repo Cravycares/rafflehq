@@ -17,19 +17,21 @@ const handler = NextAuth({
   ],
   callbacks: {
     async session({ session, token }) {
-  (session as any).xHandle = token.xHandle
-  ;(session as any).accessToken = token.accessToken
-  return session
-},
+      (session as any).xHandle = token.xHandle
+      ;(session as any).accessToken = token.accessToken
+      ;(session as any).xImage = token.xImage
+      return session
+    },
     async jwt({ token, profile, account }) {
-  if (profile) {
-    token.xHandle = (profile as any)?.data?.username || (profile as any)?.username
-  }
-  if (account) {
-    token.accessToken = account.access_token
-  }
-  return token
-},
+      if (profile) {
+        token.xHandle = (profile as any)?.data?.username || (profile as any)?.username
+        token.xImage = (profile as any)?.data?.profile_image_url || (profile as any)?.profile_image_url
+      }
+      if (account) {
+        token.accessToken = account.access_token
+      }
+      return token
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 })
