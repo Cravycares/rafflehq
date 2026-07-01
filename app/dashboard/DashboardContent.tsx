@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { Logo } from "@/components/Logo"
 import { signOut } from "next-auth/react"
+import Nav from "@/components/Nav"
 
 // ── Design tokens ──────────────────────────────────────────
 const VIOLET = "#7C3AED"
@@ -410,41 +411,7 @@ export default function DashboardContent() {
       )}
 
       {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-8 h-16"
-        style={{ background: "rgba(13,13,15,0.88)", backdropFilter: "blur(24px)", borderBottom: `1px solid ${FG06}` }}>
-        <a href="/" className="flex items-center gap-2.5">
-  <svg width="32" height="32" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-    <rect width="400" height="400" rx="200" fill="#080808"/>
-    <polygon points="200,28 352,118 352,298 200,388 48,298 48,118" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeOpacity="0.3"/>
-    <polygon points="200,44 344,130 344,290 200,376 56,290 56,130" fill="#3b0764" fillOpacity="0.5"/>
-    <polygon points="200,40 340,128 340,288 200,372 60,288 60,128" fill="#4c1d95" fillOpacity="0.6"/>
-    <polygon points="200,36 336,126 336,286 200,368 64,286 64,126" fill="#0e0514" stroke="#8b5cf6" strokeWidth="3"/>
-    <polygon points="200,72 304,132 304,252 200,312 96,252 96,132" fill="#7c3aed" fillOpacity="0.22" stroke="#a78bfa" strokeWidth="2"/>
-    <line x1="200" y1="36" x2="336" y2="126" stroke="#c4b5fd" strokeWidth="1.5" strokeOpacity="0.6"/>
-    <line x1="200" y1="36" x2="64" y2="126" stroke="#9f7aea" strokeWidth="1" strokeOpacity="0.4"/>
-    <text x="200" y="230" fontFamily="Arial Black, sans-serif" fontSize="140" fontWeight="900" fill="#e9d5ff" textAnchor="middle">R</text>
-    <circle cx="200" cy="36" r="8" fill="#e9d5ff"/>
-    <circle cx="336" cy="126" r="7" fill="#c4b5fd"/>
-    <circle cx="336" cy="286" r="6" fill="#a78bfa"/>
-    <circle cx="200" cy="368" r="6" fill="#a78bfa"/>
-    <circle cx="64" cy="286" r="6" fill="#a78bfa"/>
-    <circle cx="64" cy="126" r="7" fill="#c4b5fd"/>
-  </svg>
-  <span className="font-bold text-[15px] tracking-[-0.02em]" style={{ color: FG }}>RaffleHQ</span>
-</a>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: FG08, border: `1px solid rgba(240,238,246,0.1)` }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: VIOLET, boxShadow: `0 0 6px ${VIOLET}` }} />
-            <span className="text-sm" style={{ color: FG }}>{project?.x_handle || `@${xHandle}`}</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.15)", color: "#A78BFA" }}>✓ verified</span>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/" })}
-            className="text-sm px-3 py-1.5 rounded-lg transition-colors hover:opacity-80"
-            style={{ color: FG45, border: `1px solid rgba(240,238,246,0.1)` }}>
-            Sign out
-          </button>
-        </div>
-      </nav>
+<Nav />
 
       {/* ── Main Layout ── */}
       <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
