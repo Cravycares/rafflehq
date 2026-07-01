@@ -122,7 +122,7 @@ function getDefaultRequirements(): Requirements {
 export default function DashboardContent() {
   const { data: session } = useSession()
   const xHandle = (session as any)?.xHandle
-  const xImage = (session as any)?.xImage
+  const xImage = ((session as any)?.xImage as string)?.replace("_normal", "_400x400")
 
   const [project, setProject] = useState(null)
   const [requests, setRequests] = useState([])
