@@ -19,12 +19,14 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ accountIdsOrUsernames: [username] }),
     })
 
-    if (!res.ok) {
-      return NextResponse.json({ score: null, error: "Ethos API error" })
-    }
+    const raw = await res.json()
+    console.log("Ethos raw response:", JSON.stringify(raw))
 
-    const data = await res.json()
-    const user = Array.isArray(data) ? data[0] : data?.data?.[0] ?? null
+    // Handle both array and wrapped response formats
+    const users = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
+    const user = users[0] ?? null
+    console.log("Ethos user:", JSON.stringify(user))
+
     const score = user?.score ?? null
 
     if (score !== null) {
@@ -34,8 +36,9 @@ export async function POST(req: NextRequest) {
       }).eq("id", projectId)
     }
 
-    return NextResponse.json({ score })
+    return NextResponse.json({ score, debug: { raw, user } })
   } catch (err) {
-    return NextResponse.json({ score: null, error: "Failed to fetch Ethos score" })
+    console.error("Ethos fetch error:", err)
+    return NextResponse.json({ score: null, error: String(err) })
   }
 }
