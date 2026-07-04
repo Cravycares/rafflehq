@@ -30,7 +30,7 @@ export default function ProjectProfile() {
 
   // Fetch live Ethos score and update DB
   try {
-  const ethosRes = await fetch(`/api/ethos`, {
+  const ethosRes = await fetch(`/api/ethos/score`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ xHandle: handle, projectId: proj.id }),
