@@ -106,7 +106,7 @@ export default function ProjectProfile() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <Nav />
-      <div className="px-6 py-12">
+      <div className="px-6 pt-24 pb-12">
         <div className="max-w-3xl mx-auto">
 
           {/* Back */}
