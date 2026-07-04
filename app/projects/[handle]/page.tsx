@@ -30,18 +30,18 @@ export default function ProjectProfile() {
 
   // Fetch live Ethos score and update DB
   try {
-    const ethosRes = await fetch(`/api/ethos?handle=${handle}`)
-    const ethosData = await ethosRes.json()
-    if (ethosData.score != null) {
-      await supabase
-        .from("projects")
-        .update({ ethos_score: ethosData.score })
-        .eq("id", proj.id)
-      proj.ethos_score = ethosData.score
-    }
-  } catch (_) {
-    // Ethos fetch failed — use stored value, no problem
+  const ethosRes = await fetch(`/api/ethos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ xHandle: handle, projectId: proj.id }),
+  })
+  const ethosData = await ethosRes.json()
+  if (ethosData.score != null) {
+    proj.ethos_score = ethosData.score
   }
+} catch (_) {
+  // Ethos fetch failed — use stored value
+}
 
   setProject(proj)
 
